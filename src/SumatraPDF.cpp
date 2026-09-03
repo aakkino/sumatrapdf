@@ -5671,6 +5671,8 @@ void CloseTab(WindowTab* tab, bool quitIfLast) {
         return;
     }
 
+    CloseTranslatePopupForTab(tab);
+
     // Stop eventual TTS reading. The full reset (rather than just
     // StopReadAloudIfSourceTab) also drops the pointers to this tab held by the
     // playback bar and the session, which is about to be a dangling one
@@ -5834,6 +5836,10 @@ void CloseWindow(MainWindow* win, bool quitIfLast, bool forceClose) {
             }
         }
         return;
+    }
+
+    for (WindowTab* tab : win->Tabs()) {
+        CloseTranslatePopupForTab(tab);
     }
 
     // Stop eventual TTS reading
@@ -9165,6 +9171,7 @@ static void OnFrameKeyEsc(MainWindow* win) {
     if (win->showSelection) {
         // clear the user's text/rect selection (ClearSearchResult only clears
         // find-match highlights since issue #5737, so it can't do this anymore)
+        CloseTranslatePopupForTab(win->CurrentTab());
         DeleteOldSelectionInfo(win, true);
         ClearSearchResult(win); // repaints; also drops any find-match highlights
         ToolbarUpdateStateForWindow(win, false);
@@ -12438,6 +12445,10 @@ static LRESULT FrameOnCommand(MainWindow* win, HWND hwnd, UINT msg, WPARAM wp, L
 
         case CmdTranslateSelection:
             ShowSelectionTranslateDialog(tab, TranslateEngine::Default);
+            break;
+
+        case CmdTranslateSelectionQuick:
+            ShowSelectionTranslatePopup(tab);
             break;
 
         case CmdTranslateSelectionWithGoogle:

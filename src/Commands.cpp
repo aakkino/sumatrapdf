@@ -317,6 +317,7 @@ static SeqStrings gCommandNames =
     "CmdAnnotationHighlightBrush\0"
     "CmdFindAnnotation\0"
     "CmdOpenFileNoHistory\0"
+    "CmdTranslateSelectionQuick\0"
     "CmdNone\0"
     "\0";
 
@@ -622,6 +623,7 @@ static i32 gCommandIds[] = {
     CmdAnnotationHighlightBrush,
     CmdFindAnnotation,
     CmdOpenFileNoHistory,
+    CmdTranslateSelectionQuick,
     CmdNone,
 };
 
@@ -927,6 +929,7 @@ SeqStrings gCommandDescriptions =
     "Highlight with Brush\0"
     "Find Annotation\0"
     "Open File Without History...\0"
+    "Translate Selection\0"
     "Do nothing\0"
     "\0";
 // clang-format on

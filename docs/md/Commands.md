@@ -293,6 +293,7 @@ CmdOpenWithPdfDjvuBookmarker,,Open in Pdf&Djvu Bookmarker,
 CmdOpenWithPdfXchange,,Open in PDF-XChange,
 CmdOpenWithXpsViewer,,Open in Microsoft Xps Viewer,
 CmdTranslateSelection,,Translate Selection...,"ver 3.7+, opens a dialog to translate the selected text (edit text, pick languages and engine); used from the selection context menu and command palette"
+CmdTranslateSelectionQuick,,Translate Selection,"ver 3.7+, translates from the default selection toolbar with the remembered installed AI CLI and shows a popup beside the selection; use CmdTranslateSelection in a custom SelectionToolbarLayout for the full dialog"
 CmdTranslateSelectionWithDeepL,,Translate Selection With DeepL,
 CmdTranslateSelectionWithGoogle,,Translate Selection with Google,
 CmdTranslateSelectionWithGrokBuild,,Translate Selection with Grok Build,"ver 3.7+, requires the Grok Build CLI"

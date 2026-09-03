@@ -13,13 +13,13 @@ project before backend implementation begins.
 
 ## Guides
 
-| Guide | Bootstrap question |
-| --- | --- |
-| [Directory Structure](./directory-structure.md) | Where do backend modules, services, and routes live? |
-| [Database Guidelines](./database-guidelines.md) | What persistence and migration conventions exist? |
-| [Error Handling](./error-handling.md) | How are failures represented and propagated? |
-| [Logging Guidelines](./logging-guidelines.md) | What may be logged, at which levels, and where? |
-| [Quality Guidelines](./quality-guidelines.md) | Which checks and review rules are required? |
-| [Model Routing And Dispatch](./model-routing-and-dispatch.md) | Harness-owned Trellis dispatch contract |
-| [Harness Migration](./harness-migration.md) | Harness-owned migration contract |
-
+| Guide                                                         | Bootstrap question                                    |
+| ------------------------------------------------------------- | ----------------------------------------------------- |
+| [Directory Structure](./directory-structure.md)               | Where do backend modules, services, and routes live?  |
+| [Database Guidelines](./database-guidelines.md)               | What persistence and migration conventions exist?     |
+| [Error Handling](./error-handling.md)                         | How are failures represented and propagated?          |
+| [Logging Guidelines](./logging-guidelines.md)                 | What may be logged, at which levels, and where?       |
+| [Quality Guidelines](./quality-guidelines.md)                 | Which checks and review rules are required?           |
+| [Model Routing And Dispatch](./model-routing-and-dispatch.md) | Harness-owned Trellis dispatch contract               |
+| [Harness Migration](./harness-migration.md)                   | Harness-owned migration contract                      |
+| [Windows Build](./windows-build.md)                           | How MSVC and the Windows SDK compile base code safely |

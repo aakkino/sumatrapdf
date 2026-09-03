@@ -26,6 +26,7 @@
 #include "WindowTab.h"
 #include "Canvas.h"
 #include "Selection.h"
+#include "SelectionTranslate.h"
 #include "Commands.h"
 #include "CommandAvailability.h"
 #include "AppSettings.h"
@@ -79,6 +80,7 @@ struct SelectionToolbar {
 // GetCommandVisibility (hidden buttons are dropped, disabled ones grayed)
 static const SelectionToolbarButton gCandidateButtons[] = {
     {CmdCopySelection, _TRN("Copy to clipboard"), {}, Str(gIconCopy)},
+    {CmdTranslateSelectionQuick, StrL("Translate"), {}, Str(gIconTranslate)},
     {CmdTranslateSelection, StrL("Translate"), {}, Str(gIconTranslate)},
     {CmdReadAloudSelection, StrL("Read Aloud"), {}, Str(gIconSpeak)},
     {CmdCreateAnnotHighlight, StrL("Highlight"), {}, Str(gIconAnnotHighlight)},
@@ -107,6 +109,9 @@ static void CollectBuiltInSelectionToolbarCmds(Vec<int>& out) {
     VecReset(out);
     auto addDefault = [&out]() {
         for (const SelectionToolbarButton& cand : gCandidateButtons) {
+            if (cand.cmdId == CmdTranslateSelection) {
+                continue;
+            }
             VecAppend(out, cand.cmdId);
         }
     };
@@ -478,39 +483,6 @@ static void PaintToolbar(SelectionToolbar*, VirtHostPaintEvent* ev) {
     ev->gfx->FillRoundedRect(ev->clientRect, cornerRadius, SelBarBg(), SelBarBorderColor());
 }
 
-// union of the on-screen parts of the selection, in canvas coordinates;
-// false if the selection is empty or fully scrolled out of view
-static bool GetSelectionBounds(MainWindow* win, Rect& out) {
-    DisplayModel* dm = win->AsFixed();
-    if (!dm) {
-        return false;
-    }
-    WindowTab* tab = win->CurrentTab();
-    if (!tab || !tab->selectionOnPage) {
-        return false;
-    }
-    Rect canvas = win->canvasRc;
-    Rect bounds;
-    bool first = true;
-    for (SelectionOnPage& sel : *tab->selectionOnPage) {
-        Rect r = sel.GetRect(dm).Intersect(canvas);
-        if (r.IsEmpty()) {
-            continue;
-        }
-        if (first) {
-            bounds = r;
-            first = false;
-        } else {
-            bounds = bounds.Union(r);
-        }
-    }
-    if (first) {
-        return false;
-    }
-    out = bounds;
-    return true;
-}
-
 // Prefer above the selection, fall back to below; clamp to the canvas.
 // Returns true if the window was moved/resized (caller may need a repaint).
 static bool PositionToolbar(SelectionToolbar* tb, const Rect& sel) {
@@ -680,7 +652,7 @@ static void ShowSelectionToolbarNow(MainWindow* win) {
         return;
     }
     Rect sel;
-    if (!GetSelectionBounds(win, sel)) {
+    if (!GetVisibleSelectionBounds(win, sel)) {
         return;
     }
     SelectionToolbar* tb = GetOrCreateToolbar(win);
@@ -748,7 +720,12 @@ static void CancelPendingShow(MainWindow* win) {
 // canvas paint routine). Hides it if the selection scrolled out of view or the
 // current tab changed; re-shows it after e.g. a repaint restored the selection.
 void UpdateSelectionToolbarPosition(MainWindow* win) {
+    UpdateSelectionTranslatePopup(win);
     if (!win) {
+        return;
+    }
+    if (HasSelectionTranslatePopup(win)) {
+        HideSelectionToolbar(win);
         return;
     }
     // Hide during drag so the bar does not chase the rubber-band selection.
@@ -774,7 +751,7 @@ void UpdateSelectionToolbarPosition(MainWindow* win) {
         return;
     }
     Rect sel;
-    if (!GetSelectionBounds(win, sel)) {
+    if (!GetVisibleSelectionBounds(win, sel)) {
         HideSelectionToolbar(win);
         return;
     }
@@ -806,7 +783,11 @@ void UpdateSelectionToolbarPosition(MainWindow* win) {
 // do not change, and a move typically does not paint the canvas, so the
 // paint-path update never runs; onWindowMoved (and layout/DPI) call this instead.
 void RepositionSelectionToolbar(MainWindow* win) {
+    RepositionTranslatePopup(win);
     if (!win) {
+        return;
+    }
+    if (HasSelectionTranslatePopup(win)) {
         return;
     }
     SelectionToolbar* tb = win->selectionToolbar;
@@ -814,7 +795,7 @@ void RepositionSelectionToolbar(MainWindow* win) {
         return;
     }
     Rect sel;
-    if (!GetSelectionBounds(win, sel)) {
+    if (!GetVisibleSelectionBounds(win, sel)) {
         return;
     }
     PositionToolbar(tb, sel);
