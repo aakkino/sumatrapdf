@@ -63,6 +63,9 @@ class RoleContextCustomizationTests(unittest.TestCase):
         self.assertNotIn("full-scope validation", check_skill)
 
     def test_project_policy_and_export_cover_project_local_final_role(self) -> None:
+        if not (ROOT / "export-manifest.json").is_file():
+            self.skipTest("export manifest is only present in the authoring template")
+
         agents = self.read("AGENTS.md")
         manifest = json.loads(self.read("export-manifest.json"))
         exported = manifest["migrationProfiles"]["agent-workflow"]["include"]
