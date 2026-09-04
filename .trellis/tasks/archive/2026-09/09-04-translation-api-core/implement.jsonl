@@ -1,0 +1,3 @@
+{"file":".trellis/spec/backend/windows-build.md","reason":"Native WinHTTP declarations, linking, and MSVC/MinGW constraints."}
+{"file":".trellis/spec/backend/logging-guidelines.md","reason":"Credentials and document content must not enter diagnostics."}
+{"file":".trellis/tasks/09-04-translation-popup-provider-apis/research/api-contracts.md","reason":"Official API schemas and existing local HTTP evidence."}
