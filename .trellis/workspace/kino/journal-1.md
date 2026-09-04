@@ -26,3 +26,24 @@ Added a non-modal selection translation popup backed by configured local AI CLIs
 ### Status
 
 [OK] **Completed**
+
+
+## Session 2: Quick translation engine switch
+
+**Date**: 2026-09-04
+**Task**: Quick translation engine switch
+**Branch**: `master`
+
+### Summary
+
+Added an installed-AI engine switcher to the quick selection translation popup, with persistence, request replacement, focused coverage, and updated frontend contracts.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `3a0f90248` | (see git log) |
+
+### Status
+
+[OK] **Completed**
