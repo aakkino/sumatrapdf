@@ -47,3 +47,24 @@ Added an installed-AI engine switcher to the quick selection translation popup, 
 ### Status
 
 [OK] **Completed**
+
+
+## Session 3: Add translation API core
+
+**Date**: 2026-09-04
+**Task**: Add translation API core
+**Branch**: `master`
+
+### Summary
+
+Added provider-neutral translation service, bounded HTTP handling, generated settings, and local API tests.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `f0b651e16` | (see git log) |
+
+### Status
+
+[OK] **Completed**
