@@ -117,6 +117,14 @@ function parsePlaced(raw: string): { x: number; y: number; dx: number; dy: numbe
   return { x: Number(match[1]), y: Number(match[2]), dx: Number(match[3]), dy: Number(match[4]) };
 }
 
+function parseRequest(raw: string): number {
+  const match = /^request=(\d+)$/m.exec(raw);
+  if (!match) {
+    throw new Error(`selection-translate-popup: popup has no request identity\n${raw}`);
+  }
+  return Number(match[1]);
+}
+
 export async function testit(): Promise<void> {
   setProcessDpiAware();
 
@@ -148,8 +156,13 @@ export async function testit(): Promise<void> {
     if (!/^configure=1$/m.test(invalid) || !/^visible=1$/m.test(invalid)) {
       throw new Error(`selection-translate-popup: invalid engine did not show configure error\n${invalid}`);
     }
-    if (!/^header=Translation -> English$/m.test(invalid)) {
-      throw new Error(`selection-translate-popup: provider/language header missing\n${invalid}`);
+    if (
+      !/^switcher=1$/m.test(invalid) ||
+      !/^engine=Default$/m.test(invalid) ||
+      !/^provider=Choose Engine$/m.test(invalid) ||
+      !/^target=English$/m.test(invalid)
+    ) {
+      throw new Error(`selection-translate-popup: invalid engine switcher missing\n${invalid}`);
     }
     if (getFocusedHwnd(frame) !== focusedBefore) {
       throw new Error("selection-translate-popup: showing the popup stole keyboard focus");
@@ -163,9 +176,15 @@ export async function testit(): Promise<void> {
 
     const loading = await popup(client, "start");
     expectState(loading, "Loading");
-    if (!/^header=OpenAI Codex -> English$/m.test(loading)) {
-      throw new Error(`selection-translate-popup: provider/language header missing\n${loading}`);
+    if (
+      !/^switcher=1$/m.test(loading) ||
+      !/^engine=OpenAI Codex$/m.test(loading) ||
+      !/^provider=OpenAI Codex$/m.test(loading) ||
+      !/^target=English$/m.test(loading)
+    ) {
+      throw new Error(`selection-translate-popup: active engine switcher missing\n${loading}`);
     }
+    const request0 = parseRequest(loading);
     const popup0 = parsePlaced(loading);
     const frame0 = getWindowRect(frame);
     const frameWidth = frame0.right - frame0.left;
@@ -181,9 +200,35 @@ export async function testit(): Promise<void> {
     if (moved.x - popup0.x !== frameMoved.left - frame0.left || moved.y - popup0.y !== frameMoved.top - frame0.top) {
       throw new Error(`selection-translate-popup: popup did not follow frame\n${movedRaw}`);
     }
+
+    const sameEngine = await popup(client, "switch", "OpenAI Codex");
+    expectState(sameEngine, "Loading");
+    if (parseRequest(sameEngine) !== request0 || !/^persisted=Google$/m.test(sameEngine)) {
+      throw new Error(`selection-translate-popup: same engine restarted or persisted\n${sameEngine}`);
+    }
+
+    const switched = await popup(client, "switch", "Claude Code");
+    expectState(switched, "Loading");
+    const request1 = parseRequest(switched);
+    if (
+      request1 <= request0 ||
+      !/^engine=Claude Code$/m.test(switched) ||
+      !/^provider=Claude Code$/m.test(switched) ||
+      !/^persisted=Claude Code$/m.test(switched)
+    ) {
+      throw new Error(`selection-translate-popup: engine switch did not persist and restart\n${switched}`);
+    }
+    expectState(await popup(client, "stale", "late result"), "Loading");
+
     const result = await popup(client, "result", "translated result");
     expectState(result, "Result");
-    if (!/^result=translated result$/m.test(result) || !/^copy=1$/m.test(result)) {
+    if (
+      !/^switcher=1$/m.test(result) ||
+      !/^provider=Claude Code$/m.test(result) ||
+      !/^target=English$/m.test(result) ||
+      !/^result=translated result$/m.test(result) ||
+      !/^copy=1$/m.test(result)
+    ) {
       throw new Error(`selection-translate-popup: result controls missing\n${result}`);
     }
 

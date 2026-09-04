@@ -36,9 +36,21 @@ static TranslateEngine ResolveQuickTranslateEngine();
   and saved engine. `ResolveQuickTranslateEngine()` accepts it only when
   `EngineIsAI(engine)` and `IsEngineAvailable(engine)`; it never falls back to
   Google, DeepL, or another CLI.
-- States are `Hidden`, `Loading`, `Result`, and `Error`. The read-only header
-  is `<provider> -> <target language>`. Result text is selectable, scrollable,
-  and copied as a whole; provider and languages are edited only in the dialog.
+- States are `Hidden`, `Loading`, `Result`, and `Error`. Every visible state
+  has a compact provider button followed by a read-only `-> <target language>`
+  label. The button shows the active provider or `Choose Engine` when the saved
+  value is invalid. Result text is selectable, scrollable, and copied as a
+  whole; source and target languages remain dialog-only.
+- The provider button opens a checked native menu of only installed AI engines
+  in `gAllEngines` order. It ends with a separator and `Configure...`; menu
+  cancellation and choosing the active engine are no-ops. Opening the menu
+  sends no text. `Configure...` and the Error-footer Configure action open the
+  full dialog without changing an engine or starting translation.
+- Choosing a different menu engine rechecks the current tab, selection, text,
+  and Copy permission. It persists only the canonical engine name, updates the
+  backend, and retransmits that unchanged selection with a new request ID. No
+  available engine leaves only the `Configure...` recovery path. The popup
+  consumes only its own menu-dismiss click so it cannot immediately reopen.
 - The popup is owner-associated `WS_POPUP | WS_EX_TOOLWINDOW`. Initial placement
   uses `SWP_NOACTIVATE`, so document focus remains. It must not get permanent
   `WS_EX_NOACTIVATE`: a click activates native result text and controls.
@@ -57,40 +69,47 @@ static TranslateEngine ResolveQuickTranslateEngine();
   output, parsed result, and provider error bodies.
 - Debug control `TestSelectionTranslatePopup` (currently `81`) accepts string
   `action` and optional string `value`. `dump` returns `state`, `visible`,
-  `configure`, `copy`, `placed`, `header`, and, only in `Result`, `result`.
-  `close` closes; `start` creates deterministic Codex/Auto/English loading;
-  `result` injects success; `stale` injects `requestId - 1`, which is ignored.
-  `dump` and `close` work without a selection; `start`, `result`, and `stale`
-  return a non-zero error without one. Unknown actions also return an error.
+  `configure`, `copy`, `placed`, `switcher`, `engine`, `provider`, `target`,
+  `persisted`, `request`, and, only in `Result`, `result`. `close` closes;
+  `start` creates deterministic Codex/Auto/English loading; `result` injects
+  success; `stale` injects `requestId - 1`, which is ignored. `switch` uses the
+  production transition with no worker, so tests can select a named AI engine
+  without requiring an installed CLI. `dump` and `close` work without a
+  selection; `start`, `result`, `stale`, and `switch` return a non-zero error
+  without one. Unknown actions also return an error.
 
 ### 4. Validation & Error Matrix
 
-| Condition                                        | Required behavior                                   |
-| ------------------------------------------------ | --------------------------------------------------- |
-| No selection, empty text, or no Copy permission  | Do not create popup or start provider.              |
-| Saved engine unset, non-AI, or unavailable       | Show `Error` with Configure; send no text.          |
-| Valid installed AI engine                        | Show `Loading`, then use only that engine.          |
-| CLI failure or timeout                           | Show actionable `Error`; retain non-modal document. |
-| Hidden visible fragments                         | Hide window; retain state for later placement.      |
-| New selection, tab change, document close        | Close popup and invalidate completion.              |
-| Mismatched `HWND`, request ID, tab, or selection | Drop completion without state change.               |
+| Condition                                        | Required behavior                                          |
+| ------------------------------------------------ | ---------------------------------------------------------- |
+| No selection, empty text, or no Copy permission  | Do not create popup or start provider.                     |
+| Saved engine unset, non-AI, or unavailable       | Show `Error` with Configure; send no text.                 |
+| Valid installed AI engine                        | Show `Loading`, then use only that engine.                 |
+| Open provider menu                               | List runnable AI engines and `Configure...`; send no text. |
+| Choose another runnable engine                   | Persist it and restart the unchanged selection.            |
+| Choose active engine or dismiss menu             | Leave state, request, and preference unchanged.            |
+| CLI failure or timeout                           | Show actionable `Error`; retain non-modal document.        |
+| Hidden visible fragments                         | Hide window; retain state for later placement.             |
+| New selection, tab change, document close        | Close popup and invalidate completion.                     |
+| Mismatched `HWND`, request ID, tab, or selection | Drop completion without state change.                      |
 
 ### 5. Good / Base / Bad Cases
 
 - Good: toolbar click with saved Codex shows `Loading`, keeps document focus,
-  then shows `Result` beside the current selection.
-- Base: `CmdTranslateSelection` still opens its modal dialog and owns provider
-  and language editing.
-- Bad: saved Google or missing CLI opens Configure error and sends no selection
-  text; a late result cannot revive a closed popup.
+  then a Claude Code menu choice persists and retranslates beside that selection.
+- Base: `CmdTranslateSelection` still opens its modal dialog and owns language
+  editing and broader provider configuration.
+- Bad: saved Google or missing CLI shows `Choose Engine` with Configure and
+  sends no selection text; a late result cannot revive a closed popup.
 
 ### 6. Tests Required
 
 - `tests/selection-translate-popup.ts`: assert default toolbar uses quick;
   invalid Google setting produces visible Configure error and preserves focus;
-  close restores toolbar; `start`, `result`, and `stale` prove loading, result,
-  Copy visibility, placement following frame movement, and stale rejection;
-  a changed selection closes the popup.
+  close restores toolbar; `start`, `switch`, `result`, and `stale` prove the
+  switcher, engine persistence, same-engine no-op, request replacement, result,
+  Copy visibility, placement following frame movement, and stale rejection; a
+  changed selection closes the popup.
 - `tests/issue-5934.ts`: assert the original dialog still opens and Escape
   closes it. `tests/issue-6048.ts`, `tests/selection-toolbar-stays.ts`, and
   `tests/selection-toolbar-move.ts` protect toolbar layout, restoration, and

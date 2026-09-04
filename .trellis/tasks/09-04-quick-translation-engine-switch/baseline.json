@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "head": "6701ad903b1edb9e0670cd756e7d380b5454c4e4",
+  "paths": [
+    {
+      "path": ".codex/agents/trellis-research.toml",
+      "status": " M",
+      "sha256": "6a6c8ede3165d2884ca6a7b272bc309c1f69557512d95d7d09e5c9b0550789a6"
+    }
+  ]
+}
