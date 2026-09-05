@@ -1,0 +1,4 @@
+{"file":".trellis/spec/frontend/selection-translation-popup.md","reason":"Existing translation command/configuration boundary and UI invariants."}
+{"file":".trellis/spec/backend/translation-service.md","reason":"Checked service API, canonical language labels, worker-only calls, and redaction contract."}
+{"file":".trellis/tasks/09-04-translation-popup-provider-apis/research/api-contracts.md","reason":"Provider field completeness and Test Connection contract."}
+{"file":".trellis/tasks/09-04-translation-popup-provider-apis/research/ui-feasibility.md","reason":"Approved native configuration layout and deferred UI infrastructure."}

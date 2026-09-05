@@ -1,0 +1,7 @@
+{"candidateTreeHash": "1771a94cf41aa9197d9bb887c12e6e4d4b6dcf105fcc5cc0d671582a126ed85c", "commandId": "api-test", "result": "pass", "runCount": 1, "schemaVersion": 1, "stage": "paired", "unitId": "shared-ui-contract"}
+{"candidateTreeHash": "3c2dc54ee83d574e894056390ad26e4ed087d64d467742c736838eb1b0420308", "commandId": "config-test", "result": "pass", "runCount": 1, "schemaVersion": 1, "stage": "paired", "unitId": "config-ui"}
+{"candidateTreeHash": "aaad43c2950a74173ab8ba6d558a37b970cffa48caead2dc0b4a1950da07dce2", "commandId": "config-test", "result": "pass", "runCount": 1, "schemaVersion": 1, "stage": "paired", "unitId": "config-focus-stability"}
+{"candidateTreeHash": "aaad43c2950a74173ab8ba6d558a37b970cffa48caead2dc0b4a1950da07dce2", "commandId": "diff-check", "result": "pass", "runCount": 1, "schemaVersion": 1, "stage": "paired", "unitId": "focus-collapse-spec-sync"}
+{"candidateTreeHash": "b06d95ae8d26c22a2e43fb2fca3b9576f094318ac14f8a41a2cdfe52212f3544", "commandId": "config-test", "result": "pass", "runCount": 1, "schemaVersion": 1, "stage": "paired", "unitId": "config-dpi-and-internet-guard"}
+{"candidateTreeHash": "b06d95ae8d26c22a2e43fb2fca3b9576f094318ac14f8a41a2cdfe52212f3544", "commandId": "diff-check", "result": "pass", "runCount": 1, "schemaVersion": 1, "stage": "paired", "unitId": "postfix-evidence-closure"}
+{"candidateTreeHash": "fd5df847a7b3ce435ed6c9234dd30e376afdbb9f680a3282751f635c8bbbdc4c", "commandId": "diff-check", "result": "pass", "runCount": 2, "schemaVersion": 1, "stage": "paired", "unitId": "postfix-evidence-closure"}

@@ -1,0 +1,28 @@
+{
+  "id": "translation-provider-config-ui",
+  "name": "translation-provider-config-ui",
+  "title": "Build translation provider configuration",
+  "description": "",
+  "status": "completed",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P2",
+  "creator": "kino",
+  "assignee": "kino",
+  "createdAt": "2026-09-04",
+  "completedAt": "2026-09-05",
+  "branch": null,
+  "base_branch": "master",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [
+    "09-05-translation-config-edit-redraw"
+  ],
+  "parent": "09-04-translation-popup-provider-apis",
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {}
+}
