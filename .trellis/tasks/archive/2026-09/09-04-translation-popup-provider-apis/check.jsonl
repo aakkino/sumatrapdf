@@ -1,0 +1,5 @@
+{"file":".trellis/spec/frontend/selection-translation-popup.md","reason":"Verify the final HTTP-provider popup contract and retained lifecycle invariants."}
+{"file":".trellis/spec/backend/windows-build.md","reason":"Verify native HTTP implementation remains MSVC and MinGW compatible."}
+{"file":".trellis/spec/backend/logging-guidelines.md","reason":"Verify keys, prompts, selections, and provider bodies are not logged."}
+{"file":".trellis/tasks/09-04-translation-popup-provider-apis/research/api-contracts.md","reason":"Verify provider adapters and mock coverage match official contracts."}
+{"file":".trellis/tasks/09-04-translation-popup-provider-apis/research/ui-feasibility.md","reason":"Verify implemented polish stays within approved native UI scope."}

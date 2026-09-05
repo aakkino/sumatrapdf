@@ -1,0 +1,31 @@
+{
+  "id": "translation-popup-provider-apis",
+  "name": "translation-popup-provider-apis",
+  "title": "Extend translation popup providers",
+  "description": "",
+  "status": "completed",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P2",
+  "creator": "kino",
+  "assignee": "kino",
+  "createdAt": "2026-09-04",
+  "completedAt": "2026-09-05",
+  "branch": null,
+  "base_branch": "master",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [
+    "09-04-translation-api-core",
+    "09-04-translation-provider-config-ui",
+    "09-04-translation-popup-ui-migration",
+    "09-05-translation-config-label-overlap"
+  ],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {}
+}
