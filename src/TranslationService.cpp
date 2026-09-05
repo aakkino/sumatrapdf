@@ -10,6 +10,10 @@
 #include "TranslationService.h"
 
 constexpr int kTranslationMaxTextBytes = 32 * 1024;
+constexpr int kTranslationLanguageLabelOffset = 0;
+constexpr int kTranslationGoogleCodeOffset = 1;
+constexpr int kTranslationMicrosoftCodeOffset = 2;
+constexpr int kTranslationLanguageCodeFields = 3;
 
 static const TranslationProviderInfo gProviders[] = {
     {TranslationProviderId::OpenAICompatible, StrL("OpenAI-compatible"), true, true, false},
@@ -142,6 +146,13 @@ TempStr TranslationConfigErrorTemp(const TranslationSettings& settings) {
     return {};
 }
 
+Str TranslationLanguageLabel(int index) {
+    if (index < 0 || index >= SeqStrCount(gLanguageCodes) / kTranslationLanguageCodeFields) {
+        return {};
+    }
+    return SeqStrByIndex(gLanguageCodes, index * kTranslationLanguageCodeFields + kTranslationLanguageLabelOffset);
+}
+
 bool TranslationSourceIsAuto(Str language) {
     if (str::IsEmptyOrWhiteSpace(language)) {
         return true;
@@ -158,10 +169,11 @@ TempStr TranslationLanguageCodeTemp(TranslationProviderId provider, Str language
     TempStr normalized = str::DupTemp(language);
     str::TrimWSInPlace(normalized, str::TrimOpt::Both);
     int idx = SeqStrIndexIS(gLanguageCodes, normalized);
-    if (idx < 0 || idx % 3 != 0) {
+    if (idx < 0 || idx % kTranslationLanguageCodeFields != kTranslationLanguageLabelOffset) {
         return {};
     }
-    int codeOffset = provider == TranslationProviderId::Microsoft ? 2 : 1;
+    int codeOffset =
+        provider == TranslationProviderId::Microsoft ? kTranslationMicrosoftCodeOffset : kTranslationGoogleCodeOffset;
     return SeqStrByIndex(gLanguageCodes, idx + codeOffset);
 }
 

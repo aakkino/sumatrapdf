@@ -51,6 +51,7 @@ async function runTranslation(
   endpoint: string,
   timeoutMs = 1000,
   sourceLanguage = "English",
+  targetLanguage = "French",
 ): Promise<string> {
   return await withControlledSumatra(
     EXE,
@@ -58,7 +59,7 @@ async function runTranslation(
       const res = await client.request(ControlCommand.TestTranslationApi, [
         endpoint,
         sourceLanguage,
-        "French",
+        targetLanguage,
         TEXT,
         timeoutMs,
       ]);
@@ -187,6 +188,23 @@ export async function testit(): Promise<void> {
     const autoRequest = requests.pop();
     if (!autoRequest) fail("Google Auto request missing");
     if (autoRequest.body.includes('"source"')) fail(`Google Auto sent source: ${autoRequest.body}`);
+
+    const canonicalLanguage = writeAppData("translation-api-canonical-language", [
+      ...settingsBase(),
+      "TranslationProvider = Google Cloud Translation",
+      `TranslationGoogleKey = ${SECRET}`,
+    ]);
+    const canonicalSummary = await runTranslation(
+      canonicalLanguage,
+      `${baseUrl}/google/v2`,
+      TIMEOUT_MS,
+      "Auto",
+      "Chinese (Simplified)",
+    );
+    expectMatch(canonicalSummary, /^ok=1 http=200 resultBytes=13$/, "canonical language result");
+    const canonicalRequest = requests.pop();
+    if (!canonicalRequest) fail("canonical language request missing");
+    expectMatch(canonicalRequest.body, /"target":"zh-CN"/, "canonical language code");
 
     const malformed = writeAppData("translation-api-malformed", [
       ...settingsBase(),

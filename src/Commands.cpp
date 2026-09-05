@@ -50,8 +50,6 @@ static SeqStrings gCommandNames =
     "CmdChangeScrollbar\0"
     "CmdToggleMenuBar\0"
     "CmdCopySelection\0"
-    "CmdTranslateSelectionWithGoogle\0"
-    "CmdTranslateSelectionWithDeepL\0"
     "CmdSearchSelectionWithGoogle\0"
     "CmdSearchSelectionWithBing\0"
     "CmdSearchSelectionWithWikipedia\0"
@@ -248,9 +246,6 @@ static SeqStrings gCommandNames =
     "CmdAIChatWithClaudeCode\0"
     "CmdAIChatWithGrokBuild\0"
     "CmdAIChatWithOpenAICodex\0"
-    "CmdTranslateSelectionWithGrokBuild\0"
-    "CmdTranslateSelectionWithClaudeCode\0"
-    "CmdTranslateSelectionWithOpenAICodex\0"
     "CmdFindToggleMatchWholeWord\0"
     "CmdGoToNextFavorite\0"
     "CmdGoToPrevFavorite\0"
@@ -284,7 +279,6 @@ static SeqStrings gCommandNames =
     "CmdToggleBoolSetting\0"
     "CmdFixDefaultApp\0"
     "CmdAIChatWithAntiGravity\0"
-    "CmdTranslateSelectionWithAntiGravity\0"
     "CmdConvertToPDF\0"
     "CmdDebugShowFitContentArea\0"
     "CmdExtendSelectionCharLeft\0"
@@ -318,6 +312,7 @@ static SeqStrings gCommandNames =
     "CmdFindAnnotation\0"
     "CmdOpenFileNoHistory\0"
     "CmdTranslateSelectionQuick\0"
+    "CmdConfigureTranslation\0"
     "CmdNone\0"
     "\0";
 
@@ -356,8 +351,6 @@ static i32 gCommandIds[] = {
     CmdChangeScrollbar,
     CmdToggleMenuBar,
     CmdCopySelection,
-    CmdTranslateSelectionWithGoogle,
-    CmdTranslateSelectionWithDeepL,
     CmdSearchSelectionWithGoogle,
     CmdSearchSelectionWithBing,
     CmdSearchSelectionWithWikipedia,
@@ -554,9 +547,6 @@ static i32 gCommandIds[] = {
     CmdAIChatWithClaudeCode,
     CmdAIChatWithGrokBuild,
     CmdAIChatWithOpenAICodex,
-    CmdTranslateSelectionWithGrokBuild,
-    CmdTranslateSelectionWithClaudeCode,
-    CmdTranslateSelectionWithOpenAICodex,
     CmdFindToggleMatchWholeWord,
     CmdGoToNextFavorite,
     CmdGoToPrevFavorite,
@@ -590,7 +580,6 @@ static i32 gCommandIds[] = {
     CmdToggleBoolSetting,
     CmdFixDefaultApp,
     CmdAIChatWithAntiGravity,
-    CmdTranslateSelectionWithAntiGravity,
     CmdConvertToPDF,
     CmdDebugShowFitContentArea,
     CmdExtendSelectionCharLeft,
@@ -624,6 +613,7 @@ static i32 gCommandIds[] = {
     CmdFindAnnotation,
     CmdOpenFileNoHistory,
     CmdTranslateSelectionQuick,
+    CmdConfigureTranslation,
     CmdNone,
 };
 
@@ -662,8 +652,6 @@ SeqStrings gCommandDescriptions =
     "Change Scrollbar...\0"
     "Toggle Menu Bar\0"
     "Copy Selection\0"
-    "Translate Selection with Google\0"
-    "Translate Selection With DeepL\0"
     "Search Selection with Google\0"
     "Search Selection with Bing\0"
     "Search Selection with Wikipedia\0"
@@ -860,9 +848,6 @@ SeqStrings gCommandDescriptions =
     "Claude chat...\0"
     "Grok chat...\0"
     "Codex chat...\0"
-    "Translate Selection with Grok Build...\0"
-    "Translate Selection with Claude Code...\0"
-    "Translate Selection with OpenAI Codex...\0"
     "Find: Toggle Match Whole Word\0"
     "Go to Next Favorite\0"
     "Go to Previous Favorite\0"
@@ -876,7 +861,7 @@ SeqStrings gCommandDescriptions =
     "Toggle Preserve PDF Image Colors in Dark Mode\0"
     "Toggle Light/Dark Theme\0"
     "Change Theme...\0"
-    "Translate Selection...\0"
+    "Translate Selection\0"
     "Show Favorites in Tab\0"
     "Bookmarks: Expand to Level 1\0"
     "Bookmarks: Expand to Level 2\0"
@@ -896,7 +881,6 @@ SeqStrings gCommandDescriptions =
     "Toggle Boolean Setting\0"
     "Fix Default App For Extension\0"
     "Antigravity chat...\0"
-    "Translate Selection with Antigravity...\0"
     "Convert To PDF...\0"
     "Debug: Show Fit Content Area\0"
     "Extend Selection One Character Left\0"
@@ -930,6 +914,7 @@ SeqStrings gCommandDescriptions =
     "Find Annotation\0"
     "Open File Without History...\0"
     "Translate Selection\0"
+    "Configure Translation Providers...\0"
     "Do nothing\0"
     "\0";
 // clang-format on

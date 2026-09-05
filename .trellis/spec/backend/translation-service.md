@@ -6,145 +6,128 @@
 
 - `TranslationService` is the native boundary for selection-translation and
   provider-configuration consumers. UI code passes domain input; it does not
-  construct provider URLs, headers, JSON, or parse provider responses.
-- Supported IDs are `OpenAICompatible`, `GoogleCloud`, and `Microsoft`.
-  `None`, unknown names, and incomplete settings send no request.
-- `TranslationProviderFromName()` trims and compares the persisted names
-  case-insensitively: `OpenAI-compatible`, `Google Cloud Translation`, and
-  `Microsoft Translator`.
+  construct provider URLs, headers, JSON, language codes, or parse responses.
+- Service-order IDs are `OpenAICompatible`, `GoogleCloud`, and `Microsoft`.
+  `None`, unknown or legacy persisted names, and incomplete settings send no
+  request. Selection translation does not use Google/DeepL browser paths or AI
+  CLI providers.
 
 ### 2. Signatures
 
 ```cpp
+const TranslationProviderInfo* TranslationProviders();
+TranslationProviderId TranslationProviderFromName(Str name);
+Str TranslationProviderName(TranslationProviderId provider);
 void TranslationSettingsFromGlobal(TranslationSettings* settingsOut);
 bool TranslationProviderIsConfigured(const TranslationSettings& settings);
 TempStr TranslationConfigErrorTemp(const TranslationSettings& settings);
+Str TranslationLanguageLabel(int index);
+bool TranslationSourceIsAuto(Str language);
 TempStr TranslationLanguageCodeTemp(TranslationProviderId provider, Str language);
 TempStr NormalizeOpenAIBaseUrlTemp(Str url);
 void TranslateText(const TranslationSettings& settings, const TranslationRequest& request,
                    TranslationResult* resultOut, const TranslationRequestOptions& options = {});
+void TranslationSetTestEndpoint(TranslationProviderId provider, Str endpoint);
 ```
 
 - `TranslationRequest` carries `sourceLanguage`, `targetLanguage`, and `text`.
-- `TranslationResult` carries `ok`, `errorKind`, owned translated `text` or
-  redacted `error`, plus `httpStatusCode` and `winError`.
-- `TranslationRequestOptions` defaults to a 15-second timeout and a 32 KiB
-  response limit. `TranslateText()` is synchronous and must be called only
-  from an existing worker boundary. It copies its settings and request before
-  starting I/O.
-- `HttpPostUrl()` stays synchronous to its caller. `TranslationService` calls
-  it only from that worker boundary, with `HttpPostOptions` carrying the
-  request deadline and response limit.
+  `TranslationResult` carries `ok`, `errorKind`, owned translated `text` or
+  redacted `error`, `httpStatusCode`, and `winError`.
+- `TranslationProviders()` and `TranslationLanguageLabel()` are the shared UI
+  catalog. Labels use zero-based lookup and return empty after the final label;
+  provider code mappings remain service-private.
+- `TranslationRequestOptions` defaults to a 15-second deadline and 32 KiB
+  response limit. `TranslationSetTestEndpoint()` overrides only the Google URL
+  for the debug-control local fixture; it is not a user configuration path.
 
 ### 3. Contracts
 
-- `TranslationSettingsFromGlobal()` reads `TranslationProvider`,
-  `TranslationOpenAIBaseUrl`, `TranslationOpenAIModel`,
-  `TranslationOpenAIKey`, `TranslationGoogleKey`,
-  `TranslationMicrosoftEndpoint`, `TranslationMicrosoftKey`, and optional
-  `TranslationMicrosoftRegion`. Keys are persisted in plain text by design;
-  none may enter logs or diagnostic summaries.
+- `TranslationProviderFromName()` trims and compares canonical saved names
+  case-insensitively. `TranslationSettingsFromGlobal()` reads the selected
+  provider and all provider fields. Keys are deliberately plain-text settings,
+  but must not enter logs, diagnostics, errors, or probes.
 - Completeness ignores surrounding whitespace: OpenAI-compatible needs base
   URL, model, and key; Google needs key; Microsoft needs endpoint and key.
-  Microsoft region is sent only when non-empty and is not required by the
-  service.
-- Input text must be non-whitespace and at most `32 * 1024` bytes. Empty or
-  blank source means `Auto`; a non-auto source and every target must be a
-  supported language label. Google receives its language code, Microsoft its
-  code (for example `zh-Hans`), and OpenAI receives the original label in its
-  fixed prompt.
-- OpenAI-compatible URLs are trimmed, trailing slashes are removed, and one
-  terminal `/chat/completions` suffix is removed before appending exactly one
-  `/chat/completions`. The production Google URL is
-  `https://translation.googleapis.com/language/translate/v2?key=...`; Microsoft
-  trims trailing endpoint slashes, posts to
-  `<endpoint>/translate?api-version=3.0&to=...`, and adds `from` only for an
-  explicit source.
-- Each adapter uses `HttpPostUrl()` with JSON content. OpenAI is non-streaming
-  with `Authorization: Bearer`; Google sends `q`, `target`, optional `source`,
-  and `format=text`; Microsoft sends `[{"Text":...}]`, subscription key, and
-  optional region header. It parses only the documented translation field.
-- `HttpPostUrl()` creates an isolated asynchronous WinHTTP session with
-  automatic proxy selection. Status callbacks advance send, headers, reads,
-  and request errors; the caller waits on its completion event until the
-  supplied deadline. When the deadline expires, it marks `ERROR_TIMEOUT`,
-  closes the outstanding request to cancel it, and waits for the handle-closing
-  callback before releasing request state. No separate fixed response-header
-  timeout is part of this contract.
-- Because `Base.h` has already included WinINet, `Http_win.cpp` keeps a narrow
-  WinHTTP declaration block. It declares only the asynchronous callback and
-  option APIs actually used: `WinHttpSetStatusCallback`, `WinHttpSetOption`,
-  `WinHttpSetTimeouts`, their callback type/statuses, and their context and
-  receive-timeout options. It must not include `winhttp.h`.
-- Settings and request data are copied before I/O and released after the call.
-  Calls never retry or fall back to another provider. Do not log API keys,
-  selected text, prompts, request bodies, raw responses, or translated text.
+  Microsoft region is optional and is emitted only when non-empty.
+- Text must be non-whitespace and at most 32 KiB. Blank/`Auto` source omits
+  Google `source` and Microsoft `from`; target must resolve through the shared
+  catalog. OpenAI receives canonical labels in its fixed prompt; provider code
+  values stay internal.
+- OpenAI-compatible normalizes its base URL, removes one terminal
+  `/chat/completions`, then appends exactly one. Google posts to its v2 URL with
+  `q`, `target`, optional `source`, and `format=text`. Microsoft trims endpoint
+  slashes and posts to `/translate?api-version=3.0&to=...`, optional `from`,
+  subscription key, optional region, and `[ {"Text": ...} ]` JSON. Adapters
+  parse only their documented translation field.
+- `TranslateText()` is synchronous only to its caller and must run under an
+  existing worker boundary. It copies settings/request before I/O; it never
+  retries or falls back. `HttpPostUrl()` has the same worker-only boundary, an
+  explicit deadline and response limit, automatic proxy, asynchronous callback
+  flow, completion-event waiting, timeout cancellation, and request-close drain.
+- `Http_win.cpp` keeps narrow WinHTTP declarations because `Base.h` already
+  includes WinINet. Do not include `winhttp.h` there.
+- Production debug-control summaries contain outcome metadata only: success is
+  `ok`, HTTP status, and result byte length; failure is `ok`, HTTP status, and
+  error category. They never contain keys, selected text, prompts, request
+  bodies, raw responses, redacted error text, or translated text.
 
 ### 4. Validation & Error Matrix
 
-| Condition                                                                 | Result                                                             |
-| ------------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| No provider or missing required value                                     | `IncompleteConfig`; return before I/O with a configuration message |
-| Blank or oversized text; unknown language; unusable normalized OpenAI URL | `InvalidInput` with a bounded generic message                      |
-| Non-positive HTTP timeout or response limit                               | `Transport`; preserve Win32 metadata, never raw failure data       |
-| URL, WinHTTP, or callback request failure                                 | `Transport`; preserve Win32 metadata, never raw failure data       |
-| Worker request exceeds its supplied event deadline                        | `Transport` with `ERROR_TIMEOUT`; cancel and drain the request     |
-| Non-2xx HTTP response                                                     | `HttpStatus`; preserve status, never expose response body          |
-| Response exceeds `maxResponseBytes` (32 KiB by default)                   | `ResponseTooLarge` from `ERROR_FILE_TOO_LARGE`                     |
-| 2xx body is malformed or lacks non-blank provider translation             | `InvalidResponse`                                                  |
-| 2xx body has the expected translation field                               | `ok=true`, owned `text`, `errorKind=None`                          |
+| Condition | Result |
+| --- | --- |
+| No provider, legacy/unknown provider, or missing required value | `IncompleteConfig`; return before I/O with a configuration message. |
+| Blank/oversized text, unsupported language, or unusable normalized URL | `InvalidInput` with a bounded generic message. |
+| Invalid timeout/response limit, URL, WinHTTP, or callback failure | `Transport`; preserve metadata, never raw failure data. |
+| Worker exceeds supplied deadline | `Transport` with `ERROR_TIMEOUT`; cancel and drain the request. |
+| Non-2xx HTTP response | `HttpStatus`; preserve status, never expose body. |
+| Response exceeds limit | `ResponseTooLarge` from `ERROR_FILE_TOO_LARGE`. |
+| 2xx body is malformed or has no non-blank translation | `InvalidResponse`. |
+| Expected non-blank field parses | `ok=true`, owned `text`, `errorKind=None`. |
 
 ### 5. Good / Base / Bad Cases
 
-- Good: a worker sends a complete Google configuration with source `English`
-  and target `French`; the body has `source=en`, `target=fr`, and
-  `format=text`.
-- Base: source `Auto` (or blank) omits Google `source` and Microsoft `from`;
-  OpenAI uses the detect-language form of the fixed prompt. A local fixture
-  that delays past the supplied deadline returns a redacted transport error
-  after request cancellation.
-- Bad: a UI thread calls `TranslateText()`, code assumes WinHTTP per-operation
-  settings alone bound the whole request, a callback can outlive its request
-  state, a caller retries through another provider, or an error surface
-  includes a key, request text, raw body, or translation result.
+- Good: a worker sends a complete Google configuration with English-to-French;
+  the local fixture observes the provider code fields and the probe returns only
+  success metadata plus result length.
+- Base: Auto source omits Google `source` and Microsoft `from`; a delayed local
+  fixture returns a redacted transport error after deadline cancellation.
+- Bad: a UI thread calls `TranslateText()`, code creates raw provider requests
+  outside the service, a request falls back to another provider, or a log/probe
+  emits a key, selected text, request body, provider body, or translation.
 
 ### 6. Tests Required
 
-- `tests/translation-api.ts` must use a local `Bun.serve` fixture only. It
-  asserts each provider's POST URL, authentication headers, JSON fields,
-  success parsing, OpenAI URL normalization, and auto-source omission.
-- The fixture must cover malformed 2xx JSON, non-2xx response, a response over
-  32 KiB, a delayed response beyond the supplied deadline, and incomplete
-  OpenAI configuration. Its debug-control summary is either status plus result
-  byte count, or status plus error category; it must never contain the test
-  key, source text, request body, or result.
-- When `HttpPostUrl()` changes, inspect the WinHTTP boundary as well as running
-  the focused test: it must retain automatic proxy, the asynchronous callback
-  flow, completion-event deadline, request-close drain, and only the narrow
-  declarations required by those calls.
-- Required source-change validation commands are `bun cmd/format.ts`,
+- `tests/translation-api.ts` uses `Bun.serve` local fixtures only. Assert each
+  provider's POST URL, authentication, JSON, success parsing, OpenAI URL
+  normalization, catalog-derived language codes, and Auto source omission.
+- Assert malformed 2xx JSON, non-2xx, oversized response, deadline timeout,
+  and incomplete OpenAI configuration. For every summary, assert keys, source
+  text, request body, and result text are absent; successful summaries expose
+  byte count only and failed summaries expose error category only.
+- When `HttpPostUrl()` changes, inspect its WinHTTP boundary for automatic
+  proxy, asynchronous callbacks, completion-event deadline, close-drain, and
+  narrow declarations. Required source-change checks are `bun cmd/format.ts`,
   `bun cmd/build.ts -debug`, `bun tests/translation-api.ts --no-build`, and
-  `git diff --check`. When `src/base/Http*` changes, also run
-  `bun cmd/run-unit-tests.ts -dbg`. These are required checks, not recorded
-  passing evidence in this specification. A current VS-2026 environment
-  blockage leaves the affected command required and unverified; it is neither
-  product-code evidence nor a passing result.
+  `git diff --check`; when `src/base/Http*` changes also run
+  `bun cmd/run-unit-tests.ts -dbg`.
 
 ### 7. Wrong vs Correct
 
 #### Wrong
 
 ```cpp
-// UI thread blocks, and an unfinished callback could outlive request state.
-TranslateText(settings, request, &result);
+HttpPostUrl(url, headers, body, &response);
+logf("translation: %s", response);
 ```
+
+This duplicates provider transport at the caller and exposes text-bearing data.
 
 #### Correct
 
 ```cpp
-// A worker owns the blocking call; it receives one result after request cleanup.
-RunAsync(MkFunc0(TranslateTextOnWorker, &data), StrL("Translation"));
+RunAsync(MkFunc0(TranslationWorker, task), StrL("Translation"));
+// The worker calls TranslateText(); UI receives normalized metadata/result only.
 ```
 
-Keep configuration completeness, provider construction, response parsing, and
-redaction inside `TranslationService`.
+Keep provider construction, parsing, timeout cleanup, and redaction inside
+`TranslationService`.
