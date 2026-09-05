@@ -1,0 +1,2 @@
+{"file":".trellis/spec/frontend/selection-translation-popup.md","reason":"Final translation configuration visibility, DPI, RTL, focus, and regression-test contract."}
+{"file":".trellis/tasks/09-05-translation-config-label-overlap/research/root-cause.md","reason":"Read-only traversal and paint evidence for the overlapping-label defect."}

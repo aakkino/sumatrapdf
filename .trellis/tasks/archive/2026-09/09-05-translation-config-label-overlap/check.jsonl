@@ -1,0 +1,2 @@
+{"file":".trellis/spec/frontend/selection-translation-popup.md","reason":"Verify shared collapse behavior preserves the checked configuration UI contract."}
+{"file":".trellis/tasks/09-05-translation-config-label-overlap/research/root-cause.md","reason":"Verify the fix closes the observed traversal/paint cause rather than masking labels locally."}
