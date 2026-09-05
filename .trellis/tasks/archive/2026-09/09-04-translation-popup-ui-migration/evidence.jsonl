@@ -1,0 +1,5 @@
+{"candidateTreeHash": "6b46739ea4bf908e9796dd328c7c332a08f865a9", "commandId": "popup-test", "result": "pass", "runCount": 1, "schemaVersion": 1, "stage": "paired", "unitId": "popup-functional"}
+{"candidateTreeHash": "3c2dc54ee83d574e894056390ad26e4ed087d64d467742c736838eb1b0420308", "commandId": "popup-test", "result": "pass", "runCount": 1, "schemaVersion": 1, "stage": "paired", "unitId": "popup-polish"}
+{"candidateTreeHash": "86fec72c7a300dd533825220e1076b2fdda20d67f2188459bd866e8035e3fd6c", "commandId": "popup-test", "result": "pass", "runCount": 1, "schemaVersion": 1, "stage": "paired", "unitId": "popup-internet-permission"}
+{"candidateTreeHash": "b63c15e1808fe27820ef8caba58b2eca5202aa65fb18c1706463b41514b168dd", "commandId": "diff-check", "result": "pass", "runCount": 1, "schemaVersion": 1, "stage": "paired", "unitId": "postfix-evidence-closure"}
+{"candidateTreeHash": "1267f83391edd40644b6213d7492d5181fa65f5ed2c4ecbc6a97228e7ccad49f", "commandId": "diff-check", "result": "pass", "runCount": 2, "schemaVersion": 1, "stage": "paired", "unitId": "postfix-evidence-closure"}
