@@ -68,3 +68,24 @@ Added provider-neutral translation service, bounded HTTP handling, generated set
 ### Status
 
 [OK] **Completed**
+
+
+## Session 4: Translation provider UI
+
+**Date**: 2026-09-05
+**Task**: Translation provider UI
+**Branch**: `master`
+
+### Summary
+
+Add HTTP translation providers, configuration UI, popup lifecycle coverage, and configuration regressions.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `a32cae0e1` | (see git log) |
+
+### Status
+
+[OK] **Completed**

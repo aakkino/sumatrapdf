@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 3
-- **Last Active**: 2026-09-04
+- **Total Sessions**: 4
+- **Last Active**: 2026-09-05
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~70 | Active |
+| `journal-1.md` | ~91 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 4 | 2026-09-05 | Translation provider UI | `a32cae0e1` | `master` |
 | 3 | 2026-09-04 | Add translation API core | `f0b651e16` | `master` |
 | 2 | 2026-09-04 | Quick translation engine switch | `3a0f90248` | `master` |
 | 1 | 2026-09-03 | Selection translation popup | `7fa000739` | `master` |
