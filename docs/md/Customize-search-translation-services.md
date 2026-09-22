@@ -13,8 +13,9 @@ You can translate selected text with a configured OpenAI-compatible, Google Clou
 The translation result opens in a popup beside the selection.
 
 The provider menu also includes `Google` and `GoogleAPI`. These use Google's
-web translation endpoints, require no API key, and are available without
-provider credentials. The selected provider name is stored as
+unofficial web translation endpoints, require no API key, and are available
+without provider credentials. Their availability and limits may change. The
+selected provider name is stored as
 `TranslationProvider = Google` or `TranslationProvider = GoogleAPI`, so those
 settings remain compatible when moving between versions. `Google Cloud
 Translation` is the separate API provider and still requires
