@@ -42,8 +42,11 @@ TempStr SelectionTranslatePopupTestTemp(Str action, Str value, int* exitCode);
   Copy copies the whole result.
 - The provider menu enumerates `TranslationProviders()` in service order. The
   active provider is checked; incomplete providers are disabled and suffixed
-  `Not configured`; a separator and `Configure...` end the menu. Dismissing the
-  menu or choosing the active provider changes nothing and sends no text.
+  `Not configured`; `Google` and `GoogleAPI` are complete without an API key.
+  The five entries are `OpenAI-compatible`, `Google Cloud Translation`,
+  `Google`, `GoogleAPI`, and `Microsoft Translator`; a separator and
+  `Configure...` end the menu. Dismissing the menu or choosing the active
+  provider changes nothing and sends no text.
 - Choosing another configured provider rechecks the current tab, selection,
   selected text, Copy permission, and Internet permission; persists its
   canonical provider name; then starts one new request. Retry performs the
@@ -91,7 +94,7 @@ TempStr SelectionTranslatePopupTestTemp(Str action, Str value, int* exitCode);
 - Good: a selected document string with a complete provider opens Loading beside
   the selection without stealing document focus; switching to another complete
   provider persists it and only the replacement result can complete.
-- Base: an incomplete saved provider shows Configure, keeps all three providers
+- Base: an incomplete saved provider shows Configure, keeps all five providers
   visible in the menu, and sends no selected text.
 - Bad: dispatching one generic command to a dialog and the other to a popup,
   falling back to a browser or AI CLI, accepting a stale result, or emitting a
@@ -101,6 +104,7 @@ TempStr SelectionTranslatePopupTestTemp(Str action, Str value, int* exitCode);
 
 - `tests/selection-translate-popup.ts` asserts the default toolbar command,
   incomplete-provider Configure state, non-stolen focus, all provider statuses,
+  all five menu entries and no-key Google/GoogleAPI configuration,
   active/incomplete no-ops, switching and canonical persistence, request
   replacement on Retry, placement after frame movement, result/Copy state,
   production-result redaction, toolbar restoration, changed-selection close,
@@ -169,7 +173,11 @@ void CollectVirtCtrls(ILayout* root, Vec<VirtCtrl*>& out);
   `WindowBase::SetFocusTo(dropProvider)` in that order; foreground activation
   may otherwise replace the intended keyboard focus.
 - The selector uses `TranslationProviders()`; only the selected provider's
-  fields are visible. Changing provider retains unsaved values for every
+  fields are visible. It lists five canonical names: OpenAI-compatible, Google
+  Cloud Translation, Google, GoogleAPI, and Microsoft Translator.
+  OpenAI-compatible shows Base URL/Model/API Key; Google Cloud shows API Key;
+  Google and GoogleAPI share the Google form but need no key; Microsoft shows
+  Endpoint/Region/API Key. Changing provider retains unsaved values for every
   provider. Source offers `Auto` plus `TranslationLanguageLabel()` entries;
   target offers only the shared labels.
 - `ControlBase::SetVisibility()` shows and hides native child controls with
@@ -212,6 +220,7 @@ void CollectVirtCtrls(ILayout* root, Vec<VirtCtrl*>& out);
 | Provider form is collapsed                              | Prune its whole virtual subtree from `CollectVirtCtrls()`; paint no hidden title or label.                                                                       |
 | Provider form becomes visible                           | Show its native children through `ControlBase::SetVisibility()` so every visible Edit paints its non-client frame; HWND visibility and bounds alone do not pass. |
 | Required field, source, or target missing               | Show bounded validation message; disable Save/Test and send no request.                                                                                          |
+| Google or GoogleAPI selected                             | Hide the Google key edit and validate provider completeness without a key.                                                                                       |
 | Test Connection while valid and idle                    | Allocate a new ID, show progress, and start one worker with `Hello.`.                                                                                            |
 | Test Connection without Internet permission             | Keep configuration and Save available; disable Test and allocate no ID or worker.                                                                                |
 | Test Connection while working or invalid                | Leave the active request unchanged; show validation where applicable.                                                                                            |
@@ -237,9 +246,10 @@ void CollectVirtCtrls(ILayout* root, Vec<VirtCtrl*>& out);
 ### 6. Tests Required
 
 - `tests/translation-config.ts` asserts command opening without a selection,
-  provider and shared-language counts, provider focus after both first open and
-  singleton reopen, masked-key and storage/cost warnings, provider-specific
-  field visibility, local validation, preservation of unsaved provider fields,
+  five provider entries and shared-language counts, provider focus after both
+  first open and singleton reopen, masked-key and storage/cost warnings,
+  provider-specific field visibility including no-key Google/GoogleAPI,
+  local validation, preservation of unsaved provider fields,
   stale Test Connection rejection, redacted success/failure status, Save
   persistence, and Cancel non-persistence. It changes DPI while cycling every
   provider and verifies all stored labels/headings use the current font; a
