@@ -267,7 +267,7 @@ export async function testit(): Promise<void> {
       !/^provider=OpenAI-compatible$/m.test(loading) ||
       !/^polish=rounded:[01],shadow:[01],icon:1,dividers:2$/m.test(loading) ||
       !/^loadingTimer=1$/m.test(loading) ||
-      !/^providers=OpenAI-compatible:configured,Google Cloud Translation:not-configured,Microsoft Translator:configured$/m.test(
+      !/^providers=OpenAI-compatible:configured,Google Cloud Translation:not-configured,Google:configured,GoogleAPI:configured,Microsoft Translator:configured$/m.test(
         loading,
       ) ||
       !/^target=English$/m.test(loading)
