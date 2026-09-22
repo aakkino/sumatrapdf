@@ -73,11 +73,12 @@ void TranslationSetTestEndpoint(TranslationProviderId provider, Str endpoint);
   JSON. Adapters parse only their documented translation field.
 - `TranslateText()` is synchronous only to its caller and must run under an
   existing worker boundary. It copies settings/request before I/O; it never
-  retries or falls back. `HttpGetUrl()` and `HttpPostUrl()` have the same
-  worker-only boundary, an explicit deadline and response limit, automatic
-  proxy, asynchronous callback flow, completion-event waiting, timeout
-  cancellation, and request-close drain. Query strings are not logged because
-  web-provider queries carry document text and a token.
+  retries or falls back. `HttpGetUrl()` and `HttpPostUrl()` share a worker-only
+  boundary, explicit deadline and response limit, automatic proxy, and bounded
+  response handling. `HttpPostUrl()` additionally uses asynchronous callbacks,
+  completion-event waiting, timeout cancellation, and request-close drain;
+  `HttpGetUrl()` uses bounded synchronous WinHTTP calls. Query strings are not
+  logged because web-provider queries carry document text and a token.
 - `Http_win.cpp` keeps narrow WinHTTP declarations because `Base.h` already
   includes WinINet. Do not include `winhttp.h` there.
 - Production debug-control summaries contain outcome metadata only: success is
@@ -122,9 +123,11 @@ void TranslationSetTestEndpoint(TranslationProviderId provider, Str endpoint);
   For every summary, assert keys, source text, request body, token, raw
   response, and result text are absent; successful summaries expose byte count
   only and failed summaries expose error category only.
-- When `HttpGetUrl()` or `HttpPostUrl()` changes, inspect its WinHTTP boundary for automatic
-  proxy, asynchronous callbacks, completion-event deadline, close-drain, and
-  narrow declarations. Required source-change checks are `bun cmd/format.ts`,
+- When `HttpGetUrl()` or `HttpPostUrl()` changes, inspect its WinHTTP boundary
+  for automatic proxy, bounded response handling, and narrow declarations;
+  inspect `HttpPostUrl()` additionally for asynchronous callbacks,
+  completion-event deadline, timeout cancellation, and close-drain. Required
+  source-change checks are `bun cmd/format.ts`,
   `bun cmd/build.ts -debug`, `bun tests/translation-api.ts --no-build`, and
   `git diff --check`; when `src/base/Http*` changes also run
   `bun cmd/run-unit-tests.ts -dbg`.
