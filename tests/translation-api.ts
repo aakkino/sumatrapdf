@@ -104,6 +104,14 @@ export async function testit(): Promise<void> {
       if (url.pathname.includes("timeout")) {
         await Bun.sleep(TIMEOUT_DELAY_MS);
       }
+      if (url.pathname.includes("google-web") || url.pathname.includes("googleapi-web")) {
+        return Response.json([
+          [
+            ["texte ", "document"],
+            ["traduit", "text"],
+          ],
+        ]);
+      }
       if (url.pathname.includes("google")) {
         return Response.json({ data: { translations: [{ translatedText: TRANSLATION }] } });
       }
@@ -188,6 +196,64 @@ export async function testit(): Promise<void> {
     const autoRequest = requests.pop();
     if (!autoRequest) fail("Google Auto request missing");
     if (autoRequest.body.includes('"source"')) fail(`Google Auto sent source: ${autoRequest.body}`);
+
+    for (const [provider, path] of [
+      ["Google", "/google-web"],
+      ["GoogleAPI", "/googleapi-web"],
+    ] as const) {
+      const webGoogle = writeAppData(`translation-api-${provider.toLowerCase()}`, [
+        ...settingsBase(),
+        `TranslationProvider = ${provider}`,
+      ]);
+      const webSummary = await runTranslation(webGoogle, `${baseUrl}${path}`);
+      expectMatch(webSummary, /^ok=1 http=200 resultBytes=13$/, `${provider} result`);
+      const webRequest = requests.pop();
+      if (!webRequest) fail(`${provider} request missing`);
+      expectMatch(webRequest.method, /^GET$/, `${provider} method`);
+      expectMatch(webRequest.path, new RegExp(`^${path}/translate_a/single$`), `${provider} URL`);
+      expectMatch(webRequest.search, /[?&]client=gtx(?:&|$)/, `${provider} client`);
+      expectMatch(webRequest.search, /[?&]sl=en(?:&|$)/, `${provider} source code`);
+      expectMatch(webRequest.search, /[?&]tl=fr(?:&|$)/, `${provider} target code`);
+      expectMatch(webRequest.search, /[?&]dt=at(?:&|$)/, `${provider} details`);
+      expectMatch(webRequest.search, /[?&]dt=t(?:&|$)/, `${provider} text details`);
+      expectMatch(webRequest.search, /[?&]tk=861456\.725348(?:&|$)/, `${provider} token`);
+      expectMatch(
+        webRequest.search,
+        /[?&]q=document(?:%20|\+)text(?:%20|\+)must(?:%20|\+)stay(?:%20|\+)private(?:&|$)/,
+        `${provider} query text`,
+      );
+    }
+
+    const googleAuto = writeAppData("translation-api-google-web-auto", [
+      ...settingsBase(),
+      "TranslationProvider = Google",
+    ]);
+    const googleAutoSummary = await runTranslation(googleAuto, `${baseUrl}/google-web`, 1000, "Auto");
+    expectMatch(googleAutoSummary, /^ok=1 http=200 resultBytes=13$/, "Google web Auto result");
+    const googleAutoRequest = requests.pop();
+    if (!googleAutoRequest) fail("Google web Auto request missing");
+    expectMatch(googleAutoRequest.search, /[?&]sl=auto(?:&|$)/, "Google web Auto source code");
+
+    const googleMalformed = writeAppData("translation-api-google-web-malformed", [
+      ...settingsBase(),
+      "TranslationProvider = Google",
+    ]);
+    const googleMalformedSummary = await runTranslation(googleMalformed, `${baseUrl}/google-web-malformed`);
+    expectMatch(googleMalformedSummary, /^ok=0 http=200 error=invalid-response$/, "Google web malformed response");
+
+    const googleRejected = writeAppData("translation-api-google-web-rejected", [
+      ...settingsBase(),
+      "TranslationProvider = GoogleAPI",
+    ]);
+    const googleRejectedSummary = await runTranslation(googleRejected, `${baseUrl}/google-web-error`);
+    expectMatch(googleRejectedSummary, /^ok=0 http=401 error=http-status$/, "Google web HTTP rejection");
+
+    const googleOversized = writeAppData("translation-api-google-web-oversize", [
+      ...settingsBase(),
+      "TranslationProvider = GoogleAPI",
+    ]);
+    const googleOversizedSummary = await runTranslation(googleOversized, `${baseUrl}/google-web-oversize`);
+    expectMatch(googleOversizedSummary, /^ok=0 http=200 error=response-too-large$/, "Google web oversized response");
 
     const canonicalLanguage = writeAppData("translation-api-canonical-language", [
       ...settingsBase(),

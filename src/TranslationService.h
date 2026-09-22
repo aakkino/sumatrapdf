@@ -4,6 +4,8 @@
 enum class TranslationProviderId : u8 {
     OpenAICompatible,
     GoogleCloud,
+    Google,
+    GoogleAPI,
     Microsoft,
     None,
 };
@@ -63,7 +65,7 @@ struct TranslationResult {
     ~TranslationResult();
 };
 
-constexpr int kTranslationProviderCount = 3;
+constexpr int kTranslationProviderCount = 5;
 
 const TranslationProviderInfo* TranslationProviders();
 TranslationProviderId TranslationProviderFromName(Str name);

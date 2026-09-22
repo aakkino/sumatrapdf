@@ -24,6 +24,13 @@ bool HttpGetToFile(Str url, Str destFilePath, const Func1<HttpProgress*>& cbProg
 constexpr DWORD kHttpPostDefaultTimeoutMs = 15 * 1000;
 constexpr int kHttpPostDefaultMaxResponseBytes = 1024 * 1024;
 
+struct HttpGetOptions {
+    DWORD timeoutMs = kHttpPostDefaultTimeoutMs;
+    int maxResponseBytes = kHttpPostDefaultMaxResponseBytes;
+};
+
+bool HttpGetUrl(Str url, HttpRsp* rspOut, const HttpGetOptions& options = {});
+
 struct HttpPostOptions {
     DWORD timeoutMs = kHttpPostDefaultTimeoutMs;
     int maxResponseBytes = kHttpPostDefaultMaxResponseBytes;

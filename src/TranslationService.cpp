@@ -18,6 +18,8 @@ constexpr int kTranslationLanguageCodeFields = 3;
 static const TranslationProviderInfo gProviders[] = {
     {TranslationProviderId::OpenAICompatible, StrL("OpenAI-compatible"), true, true, false},
     {TranslationProviderId::GoogleCloud, StrL("Google Cloud Translation"), false, false, false},
+    {TranslationProviderId::Google, StrL("Google"), false, false, false},
+    {TranslationProviderId::GoogleAPI, StrL("GoogleAPI"), false, false, false},
     {TranslationProviderId::Microsoft, StrL("Microsoft Translator"), true, false, true},
 };
 
@@ -70,6 +72,12 @@ TranslationProviderId TranslationProviderFromName(Str name) {
     if (str::EqI(normalized, StrL("Google Cloud Translation"))) {
         return TranslationProviderId::GoogleCloud;
     }
+    if (str::EqI(normalized, StrL("Google"))) {
+        return TranslationProviderId::Google;
+    }
+    if (str::EqI(normalized, StrL("GoogleAPI"))) {
+        return TranslationProviderId::GoogleAPI;
+    }
     if (str::EqI(normalized, StrL("Microsoft Translator"))) {
         return TranslationProviderId::Microsoft;
     }
@@ -110,6 +118,9 @@ bool TranslationProviderIsConfigured(const TranslationSettings& settings) {
     }
     if (settings.provider == TranslationProviderId::GoogleCloud) {
         return HasValue(settings.googleKey);
+    }
+    if (settings.provider == TranslationProviderId::Google || settings.provider == TranslationProviderId::GoogleAPI) {
+        return true;
     }
     if (settings.provider == TranslationProviderId::Microsoft) {
         return HasValue(settings.microsoftEndpoint) && HasValue(settings.microsoftKey);
@@ -224,6 +235,16 @@ static void OnGoogleValue(ParsedTranslation* parsed, json::Value* value) {
     }
 }
 
+struct GoogleWebTranslation {
+    str::Builder segments;
+};
+
+static void OnGoogleWebValue(GoogleWebTranslation* parsed, json::Value* value) {
+    if (value->type == json::Type::String && json::PathMatch(value->path, StrL("i0"), StrL("*"), StrL("i0"))) {
+        parsed->segments.Append(value->value);
+    }
+}
+
 static void OnMicrosoftValue(ParsedTranslation* parsed, json::Value* value) {
     if (value->type == json::Type::String &&
         json::PathMatch(value->path, StrL("i0"), StrL("/translations"), StrL("i0"), StrL("/text"))) {
@@ -233,6 +254,17 @@ static void OnMicrosoftValue(ParsedTranslation* parsed, json::Value* value) {
 }
 
 static bool ParseResponse(TranslationProviderId provider, Str data, Str* textOut) {
+    if (provider == TranslationProviderId::Google || provider == TranslationProviderId::GoogleAPI) {
+        GoogleWebTranslation parsed;
+        bool ok = json::Parse(data, MkFunc1(OnGoogleWebValue, &parsed));
+        Str value = ToStr(parsed.segments);
+        if (!ok || str::IsEmptyOrWhiteSpace(value)) {
+            return false;
+        }
+        *textOut = parsed.segments.TakeStr();
+        return true;
+    }
+
     ParsedTranslation parsed;
     Func1<json::Value*> fn;
     if (provider == TranslationProviderId::OpenAICompatible) {
@@ -257,6 +289,33 @@ static TempStr BuildOpenAIPromptTemp(Str sourceLanguage, Str targetLanguage) {
                    targetLanguage);
     }
     return fmt("Translate the user's text from %s to %s. Return only the translation.", sourceLanguage, targetLanguage);
+}
+
+static u32 GoogleTokenTransform(u32 value, const char* ops) {
+    for (int i = 0; ops[i + 2]; i += 3) {
+        char shiftChar = ops[i + 2];
+        u32 shift = shiftChar >= 'a' ? (u32)(shiftChar - 'a' + 10) : (u32)(shiftChar - '0');
+        u32 shifted = ops[i + 1] == '+' ? value >> shift : value << shift;
+        value = ops[i] == '+' ? value + shifted : value ^ shifted;
+    }
+    return value;
+}
+
+static TempStr GoogleTokenTemp(Str text) {
+    constexpr u32 kTokenSeed = 406644;
+    constexpr u32 kTokenSalt = 3293161072u;
+    constexpr const char* kFirstOps = "+-a^+6";
+    constexpr const char* kSecondOps = "+-3^+b+-f";
+
+    u32 value = kTokenSeed;
+    for (int byteIdx = 0; byteIdx < len(text);) {
+        value += (u32)Utf8CodepointNext(text, byteIdx);
+        value = GoogleTokenTransform(value, kFirstOps);
+    }
+    value = GoogleTokenTransform(value, kSecondOps);
+    value ^= kTokenSalt;
+    value = value % 1000000;
+    return fmt("%u.%u", value, value ^ kTokenSeed);
 }
 
 static bool BuildRequest(const TranslationSettings& settings, const TranslationRequest& request, Str* urlOut,
@@ -304,6 +363,31 @@ static bool BuildRequest(const TranslationSettings& settings, const TranslationR
             *bodyOut = str::Dup(fmt("{\"q\":\"%s\",\"source\":\"%s\",\"target\":\"%s\",\"format\":\"text\"}",
                                     json::EscapeStrTemp(request.text), sourceCode, targetCode));
         }
+        return true;
+    }
+
+    if (provider == TranslationProviderId::Google || provider == TranslationProviderId::GoogleAPI) {
+        Str endpoint = gTestEndpoints[(int)provider];
+        if (!endpoint) {
+            endpoint = provider == TranslationProviderId::Google ? StrL("https://translate.google.com")
+                                                                 : StrL("https://translate.googleapis.com");
+        }
+        TempStr normalizedEndpoint = str::DupTemp(endpoint);
+        str::TrimWSInPlace(normalizedEndpoint, str::TrimOpt::Both);
+        while (len(normalizedEndpoint) > 0 && normalizedEndpoint.s[len(normalizedEndpoint) - 1] == '/') {
+            normalizedEndpoint.len--;
+        }
+        bool didTruncate = false;
+        TempStr encodedText = URLEncodeMayTruncateTemp(request.text, kMaxUrlEncodedLen, &didTruncate);
+        if (didTruncate) {
+            return false;
+        }
+        TempStr source = TranslationSourceIsAuto(request.sourceLanguage) ? TempStr(StrL("auto")) : sourceCode;
+        TempStr token = GoogleTokenTemp(request.text);
+        *urlOut = str::Dup(
+            fmt("%s/translate_a/single?client=gtx&sl=%s&tl=%s&hl=en&dt=at&dt=bd&dt=ex&dt=ld&dt=md&dt=qca&dt=rw&dt=rm&"
+                "dt=ss&dt=t&source=bh&ssel=0&tsel=0&kc=1&tk=%s&q=%s",
+                normalizedEndpoint, source, targetCode, token, encodedText));
         return true;
     }
 
@@ -380,7 +464,16 @@ void TranslateText(const TranslationSettings& settings, const TranslationRequest
     httpOptions.timeoutMs = options.timeoutMs;
     httpOptions.maxResponseBytes = options.maxResponseBytes;
     HttpRsp response;
-    bool ok = HttpPostUrl(url, StrL("application/json; charset=utf-8"), headers, body, &response, httpOptions);
+    bool ok = false;
+    if (copy.settings.provider == TranslationProviderId::Google ||
+        copy.settings.provider == TranslationProviderId::GoogleAPI) {
+        HttpGetOptions getOptions;
+        getOptions.timeoutMs = options.timeoutMs;
+        getOptions.maxResponseBytes = options.maxResponseBytes;
+        ok = HttpGetUrl(url, &response, getOptions);
+    } else {
+        ok = HttpPostUrl(url, StrL("application/json; charset=utf-8"), headers, body, &response, httpOptions);
+    }
     str::Free(url);
     str::Free(headers);
     str::Free(body);
