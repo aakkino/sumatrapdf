@@ -1,0 +1,4 @@
+{"file":".trellis/spec/frontend/selection-translation-popup.md","reason":"Verify command and configuration behavior remains coherent with popup flow."}
+{"file":".trellis/spec/backend/translation-service.md","reason":"Verify the language-catalog addition is read-only and provider transport remains unchanged."}
+{"file":".trellis/spec/backend/logging-guidelines.md","reason":"Verify keys and test request/response content are not logged."}
+{"file":".trellis/tasks/09-04-translation-popup-provider-apis/research/ui-feasibility.md","reason":"Verify native controls, accessibility, DPI, and visual scope."}

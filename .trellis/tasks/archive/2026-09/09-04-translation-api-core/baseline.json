@@ -1,0 +1,131 @@
+{
+  "schemaVersion": 1,
+  "head": "afd5d87443acda125468339f2b2b3e00fa77a061",
+  "paths": [
+    {
+      "path": ".codex/agents/trellis-research.toml",
+      "status": " M",
+      "sha256": "6a6c8ede3165d2884ca6a7b272bc309c1f69557512d95d7d09e5c9b0550789a6"
+    },
+    {
+      "path": ".trellis/tasks/09-04-translation-popup-provider-apis/check.jsonl",
+      "status": "??",
+      "sha256": "956f1dc5160daafb8eac63b1b9c8a742cc0c1af7f619b057a67b10857f5c5ea2"
+    },
+    {
+      "path": ".trellis/tasks/09-04-translation-popup-provider-apis/check.md",
+      "status": "??",
+      "sha256": "a45fe3b34a0d870bef36943470bdcffc241b59d22d82056788c5027042148acc"
+    },
+    {
+      "path": ".trellis/tasks/09-04-translation-popup-provider-apis/design.md",
+      "status": "??",
+      "sha256": "8c05d651d1ceb1f4a1c947b0efaf15719529209a543e7ea7f2afe037833589d1"
+    },
+    {
+      "path": ".trellis/tasks/09-04-translation-popup-provider-apis/implement.jsonl",
+      "status": "??",
+      "sha256": "2d7cdd2489474762fa56b17f00f93f8c8a6be4b8acec31733b1e8f6fefe01195"
+    },
+    {
+      "path": ".trellis/tasks/09-04-translation-popup-provider-apis/implement.md",
+      "status": "??",
+      "sha256": "3b9fa7546a5fccfcef370dc80e7a4f13606ce8c572f3bf051d7c213e9dc486cd"
+    },
+    {
+      "path": ".trellis/tasks/09-04-translation-popup-provider-apis/prd.md",
+      "status": "??",
+      "sha256": "e2d9f025463e6d69cfd7233949684a6ce0f6f5352cf8d5a5e57a29d6fda5978a"
+    },
+    {
+      "path": ".trellis/tasks/09-04-translation-popup-provider-apis/research/api-contracts.md",
+      "status": "??",
+      "sha256": "67e262061c01f6d65f6d7bf205d5e6ad14f29a5a592c1d39ca0c1a24b2ef6179"
+    },
+    {
+      "path": ".trellis/tasks/09-04-translation-popup-provider-apis/research/ui-feasibility.md",
+      "status": "??",
+      "sha256": "c395736e2054152ffb082c4584878190bcb448ab67c6cadef61c6422be3be302"
+    },
+    {
+      "path": ".trellis/tasks/09-04-translation-popup-provider-apis/research/ui-history-and-spec.md",
+      "status": "??",
+      "sha256": "68be8709381666c3b8d3e61d233296cff43d16e959812dc29667ae848b17bf4d"
+    },
+    {
+      "path": ".trellis/tasks/09-04-translation-popup-provider-apis/task.json",
+      "status": "??",
+      "sha256": "bee209303f95e0ac90d1fb5a99f94c7355aa17af75ea5d3c794a09103961d55f"
+    },
+    {
+      "path": ".trellis/tasks/09-04-translation-popup-ui-migration/check.jsonl",
+      "status": "??",
+      "sha256": "6e6e16eac3ff3a94355b491d690f5d411ba4d601570a7bc9e54256c1ced05eab"
+    },
+    {
+      "path": ".trellis/tasks/09-04-translation-popup-ui-migration/check.md",
+      "status": "??",
+      "sha256": "57c8a2009bfca9a17e6c8b743187617dd3ce9925a9df3a6a9a9d8cf0b49b0274"
+    },
+    {
+      "path": ".trellis/tasks/09-04-translation-popup-ui-migration/design.md",
+      "status": "??",
+      "sha256": "793a8fd4335e576247788ac21de8ae35d6c177250dd49228095985adf30ef8d3"
+    },
+    {
+      "path": ".trellis/tasks/09-04-translation-popup-ui-migration/implement.jsonl",
+      "status": "??",
+      "sha256": "5895e5128ff695825d23ebb11e3840ef691d6631ebeddf31ee9060e7088a4abe"
+    },
+    {
+      "path": ".trellis/tasks/09-04-translation-popup-ui-migration/implement.md",
+      "status": "??",
+      "sha256": "fa9e1799ccd8b02f5237e730a6e148589d6d644b241217f4b8791fe743a20e8f"
+    },
+    {
+      "path": ".trellis/tasks/09-04-translation-popup-ui-migration/prd.md",
+      "status": "??",
+      "sha256": "f49578973d33f4fbe1ec4de1757fc862ca7c5f140bb0036dc32fbf7be7365000"
+    },
+    {
+      "path": ".trellis/tasks/09-04-translation-popup-ui-migration/task.json",
+      "status": "??",
+      "sha256": "45ffa15ada09fb1d93a9445fe72a4a3e959a6b996865a6a133d01376622f1506"
+    },
+    {
+      "path": ".trellis/tasks/09-04-translation-provider-config-ui/check.jsonl",
+      "status": "??",
+      "sha256": "b965d68f31a8dc815745b4811c7d5535010dfbf80d07ea39d4484f082ad6bc88"
+    },
+    {
+      "path": ".trellis/tasks/09-04-translation-provider-config-ui/check.md",
+      "status": "??",
+      "sha256": "64c344ae5e623a5cdb1b9d5663dfa31ad7c7cc2f84248ea743637597c42164cc"
+    },
+    {
+      "path": ".trellis/tasks/09-04-translation-provider-config-ui/design.md",
+      "status": "??",
+      "sha256": "91c25237d8c783713d3c22f190ae6f7499f7edb3771af11dd29c0a21a9fa1f69"
+    },
+    {
+      "path": ".trellis/tasks/09-04-translation-provider-config-ui/implement.jsonl",
+      "status": "??",
+      "sha256": "cfc69fcb266bf512f62dbfcb37384c3c0177c481f97947a0e5358dfc7f824134"
+    },
+    {
+      "path": ".trellis/tasks/09-04-translation-provider-config-ui/implement.md",
+      "status": "??",
+      "sha256": "e3acdf71d51c6d6dc17069cfeaae00a3ea64bf9d6c037b2dc40d2e3509e515dc"
+    },
+    {
+      "path": ".trellis/tasks/09-04-translation-provider-config-ui/prd.md",
+      "status": "??",
+      "sha256": "a82e3a9275d7f61ca5ffd23a867e680858ca717e87d228b956a6ec1a3a051da0"
+    },
+    {
+      "path": ".trellis/tasks/09-04-translation-provider-config-ui/task.json",
+      "status": "??",
+      "sha256": "bfdee4c246e7a6987f525f5e608d232e6800f16120e48a77e7b5c712b786a28e"
+    }
+  ]
+}

@@ -39,6 +39,8 @@
 #include "FileHistory.h"
 #include "Favorites.h"
 #include "SelectionTranslate.h"
+#include "TranslationConfig.h"
+#include "TranslationService.h"
 #include "ImageSaveCropResize.h"
 #include "base/GuessFileType.h"
 #include "FindWindow.h"
@@ -716,11 +718,10 @@ enum class ControlCmd : u16 {
     TestDest = 12,
     TestNamedDest = 13,
     TestChm = 14,
-    TestSelectionTranslate = 15,
     TestTripleClickLineSelect = 16,
     TestContextMenuSelection = 17,
     TestGoToFindMatch = 18,
-    // IDs 19-21 unused (reserved on the -dbg-control wire protocol; do not renumber).
+    // IDs 15 and 19-21 are unused (reserved on the -dbg-control wire protocol; do not renumber).
     // Assign new test commands starting at 23.
     TestInverseSearch = 22,
     TestImageResizeArrowKey = 23,
@@ -781,6 +782,9 @@ enum class ControlCmd : u16 {
     TestFindUiState = 78,
     TestRenderViewPrint = 79,
     TestReadAloudPlaybackBar = 80,
+    TestSelectionTranslatePopup = 81,
+    TestTranslationApi = 82,
+    TestTranslationConfig = 83,
 };
 
 enum class ControlArgType : u16 {
@@ -1027,6 +1031,67 @@ static void AppendTestResult(ControlRequest* req, int exitCode, Str result) {
     AppendArgEnd(req->results);
 }
 
+struct TranslationApiTestData {
+    TranslationSettings settings;
+    TranslationRequest request;
+    TranslationRequestOptions options;
+    TranslationResult result;
+    HANDLE done = nullptr;
+};
+
+static void TranslationApiTestThread(TranslationApiTestData* data) {
+    TranslateText(data->settings, data->request, &data->result, data->options);
+    SetEvent(data->done);
+}
+
+static Str TranslationApiErrorName(TranslationErrorKind kind) {
+    if (kind == TranslationErrorKind::IncompleteConfig) {
+        return StrL("incomplete-config");
+    }
+    if (kind == TranslationErrorKind::InvalidResponse) {
+        return StrL("invalid-response");
+    }
+    if (kind == TranslationErrorKind::HttpStatus) {
+        return StrL("http-status");
+    }
+    if (kind == TranslationErrorKind::ResponseTooLarge) {
+        return StrL("response-too-large");
+    }
+    if (kind == TranslationErrorKind::Transport) {
+        return StrL("transport");
+    }
+    return StrL("invalid-input");
+}
+
+// The response only identifies outcome metadata. Provider data is never sent
+// back over the debug pipe because it can contain a key or document text.
+static TempStr TranslationApiTestResultTemp(Str endpoint, Str sourceLanguage, Str targetLanguage, Str text,
+                                            int timeoutMs) {
+    TranslationApiTestData data;
+    TranslationSettingsFromGlobal(&data.settings);
+    data.request.sourceLanguage = sourceLanguage;
+    data.request.targetLanguage = targetLanguage;
+    data.request.text = text;
+    data.options.timeoutMs = (DWORD)timeoutMs;
+    if (data.settings.provider == TranslationProviderId::GoogleCloud ||
+        data.settings.provider == TranslationProviderId::Google ||
+        data.settings.provider == TranslationProviderId::GoogleAPI) {
+        TranslationSetTestEndpoint(data.settings.provider, endpoint);
+    }
+
+    data.done = CreateEventW(nullptr, TRUE, FALSE, nullptr);
+    RunAsync(MkFunc0(TranslationApiTestThread, &data), StrL("TranslationApiTest"));
+    WaitForSingleObject(data.done, INFINITE);
+    CloseHandle(data.done);
+    TranslationSetTestEndpoint(data.settings.provider, {});
+
+    if (data.result.ok) {
+        return fmt("ok=1 http=%d resultBytes=%d", (int)data.result.httpStatusCode, len(data.result.text));
+    }
+    return fmt("ok=0 http=%d error=%s", (int)data.result.httpStatusCode,
+               TranslationApiErrorName(data.result.errorKind));
+}
+
 static void ExecuteControlRequest(ControlRequest* req) {
     switch ((ControlCmd)req->cmd) {
         case ControlCmd::Ping:
@@ -1125,19 +1190,43 @@ static void ExecuteControlRequest(ControlRequest* req) {
             break;
         }
 
-        case ControlCmd::TestSelectionTranslate: {
-            i32 backend = 0;
-            Str srcLang = StringArg(req, 1);
-            Str dstLang = StringArg(req, 2);
-            Str text = StringArg(req, 3);
-            if (!IntArg(req, 0, backend) || !srcLang || !dstLang || !text) {
-                AppendError(
-                    req,
-                    StrL("TestSelectionTranslate expects int backend, string srcLang, string dstLang, string text"));
+        case ControlCmd::TestSelectionTranslatePopup: {
+            Str action = StringArg(req, 0);
+            Str value = StringArg(req, 1);
+            if (!action) {
+                AppendError(req, StrL("TestSelectionTranslatePopup expects string action [, string value]"));
                 break;
             }
             int exitCode = 0;
-            Str res = SelectionTranslateResultTemp(backend, srcLang, dstLang, text, &exitCode);
+            Str res = SelectionTranslatePopupTestTemp(action, value, &exitCode);
+            AppendTestResult(req, exitCode, res);
+            break;
+        }
+
+        case ControlCmd::TestTranslationApi: {
+            i32 timeoutMs = 0;
+            Str endpoint = StringArg(req, 0);
+            Str sourceLanguage = StringArg(req, 1);
+            Str targetLanguage = StringArg(req, 2);
+            Str text = StringArg(req, 3);
+            if (!sourceLanguage || !targetLanguage || !text || !IntArg(req, 4, timeoutMs) || timeoutMs < 1) {
+                AppendError(req, StrL("TestTranslationApi expects endpoint, source, target, text and timeout"));
+                break;
+            }
+            AppendTestResult(req, 0,
+                             TranslationApiTestResultTemp(endpoint, sourceLanguage, targetLanguage, text, timeoutMs));
+            break;
+        }
+
+        case ControlCmd::TestTranslationConfig: {
+            Str action = StringArg(req, 0);
+            Str value = StringArg(req, 1);
+            if (!action) {
+                AppendError(req, StrL("TestTranslationConfig expects string action [, string value]"));
+                break;
+            }
+            int exitCode = 0;
+            Str res = TranslationConfigTestTemp(action, value, &exitCode);
             AppendTestResult(req, exitCode, res);
             break;
         }

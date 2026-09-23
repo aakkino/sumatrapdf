@@ -110,7 +110,6 @@ CmdAIChatWithClaudeCode,,AI Chat with document using Claude Code,"Toggle Claude 
 CmdAIChatWithGrokBuild,,AI Chat with document using Grok Build,"Toggle Grok Build chat sidebar, ver 3.7+. See AI-Chat-with-document.md#grok-build"
 CmdAIChatWithOpenAICodex,,AI Chat with document using OpenAI Codex,"Toggle OpenAI Codex chat sidebar, ver 3.7+. See AI-Chat-with-document.md#openai-codex"
 CmdAIChatWithAntiGravity,,AI Chat with document using Antigravity,"Toggle Antigravity chat sidebar, ver 3.7+. See AI-Chat-with-document.md#antigravity"
-CmdTranslateSelectionWithAntiGravity,,Translate Selection with Antigravity,"Translate selected text with Antigravity CLI, ver 3.7+"
 CmdChangeTheme,,Change Theme...,"ver 3.7+, opens a dialog to pick a UI theme (including **Follow Windows**, which automatically tracks Windows light/dark app mode) and optionally how document colors follow the theme (`DocumentColorsFollowTheme`)"
 CmdNavigateThumbnail,,Navigate Thumbnails,"opens a thumbnail grid for the current document; arrow keys and the mouse select a page, Enter or double-click opens it, and Esc closes the grid"
 CmdToggleLightDarkTheme,,Toggle Light/Dark Theme,"ver 3.7+, switches between the last used light and dark themes (see `LastLightTheme` / `LastDarkTheme` advanced settings)"
@@ -292,12 +291,9 @@ CmdOpenWithHtmlHelp,,Open in Microsoft HTML Help,
 CmdOpenWithPdfDjvuBookmarker,,Open in Pdf&Djvu Bookmarker,
 CmdOpenWithPdfXchange,,Open in PDF-XChange,
 CmdOpenWithXpsViewer,,Open in Microsoft Xps Viewer,
-CmdTranslateSelection,,Translate Selection...,"ver 3.7+, opens a dialog to translate the selected text (edit text, pick languages and engine); used from the selection context menu and command palette"
-CmdTranslateSelectionWithDeepL,,Translate Selection With DeepL,
-CmdTranslateSelectionWithGoogle,,Translate Selection with Google,
-CmdTranslateSelectionWithGrokBuild,,Translate Selection with Grok Build,"ver 3.7+, requires the Grok Build CLI"
-CmdTranslateSelectionWithClaudeCode,,Translate Selection with Claude Code,"ver 3.7+, requires the Claude Code CLI"
-CmdTranslateSelectionWithOpenAICodex,,Translate Selection with OpenAI Codex,"ver 3.7+, requires the OpenAI Codex CLI"
+CmdTranslateSelection,,Translate Selection,"ver 3.7+, translates selected text with the configured HTTP provider in a popup; compatibility alias of `CmdTranslateSelectionQuick`"
+CmdTranslateSelectionQuick,,Translate Selection,"ver 3.7+, translates selected text with the configured HTTP provider in a popup beside the selection"
+CmdConfigureTranslation,,Configure Translation Providers...,"ver 3.7+, configures and tests selection translation providers"
 CmdSearchSelectionWithBing,,Search Selection with Bing,
 CmdSearchSelectionWithGoogle,,Search Selection with Google,
 CmdSearchSelectionWithWikipedia,,Search Selection with Wikipedia,ver 3.6+

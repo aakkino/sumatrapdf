@@ -1,0 +1,4 @@
+{"file":".trellis/spec/frontend/index.md","reason":"Frontend pre-development and quality index for this native popup change."}
+{"file":".trellis/spec/frontend/selection-translation-popup.md","reason":"Existing command, lifecycle, privacy, and debug-control contracts that this task revises."}
+{"file":".trellis/tasks/09-04-quick-translation-engine-switch/research/engine-switch-path.md","reason":"Code-backed menu, persistence, request invalidation, and deterministic-test design."}
+{"file":".trellis/tasks/09-04-quick-translation-engine-switch/research/ui-design-reference.md","reason":"Approved v2 UI hierarchy, state mapping, native adaptation limits, and test-plan changes."}

@@ -1,0 +1,3 @@
+{"candidateTreeHash": "90d2f61aa043221fcabe7887193652a57e98937f039c680e83539ba66f7344d2", "commandId": "config-test", "result": "pass", "runCount": 1, "schemaVersion": 1, "stage": "paired", "unitId": "collapsed-virtctrl-paint"}
+{"candidateTreeHash": "c3b46b26c65ade0b2b76f6d73d4cea539bfc199388379a2f66709e07d7f90989", "commandId": "diff-check", "result": "pass", "runCount": 1, "schemaVersion": 1, "stage": "paired", "unitId": "postfix-evidence-closure"}
+{"candidateTreeHash": "7249f371485f8c47bb026ae4b5c9902055a14d116e94c6b5b1f671018944762f", "commandId": "diff-check", "result": "pass", "runCount": 2, "schemaVersion": 1, "stage": "paired", "unitId": "postfix-evidence-closure"}
