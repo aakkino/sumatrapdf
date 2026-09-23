@@ -89,3 +89,29 @@ Add HTTP translation providers, configuration UI, popup lifecycle coverage, and 
 ### Status
 
 [OK] **Completed**
+
+
+## Session 5: Complete Google translation provider task
+
+**Date**: 2026-09-23
+**Task**: Complete Google translation provider task
+**Branch**: `master`
+
+### Summary
+
+Added Zotero-style Google and GoogleAPI translation providers, configuration and documentation; passed final gate, recorded environment-only clipboard and focus test failures, and archived the parent and three child tasks.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `4a5caaf9b` | (see git log) |
+| `caa4a71f2` | (see git log) |
+| `f0ca61132` | (see git log) |
+| `e023c68f2` | (see git log) |
+| `cc8aae9a1` | (see git log) |
+| `459745f27` | (see git log) |
+
+### Status
+
+[OK] **Completed**
