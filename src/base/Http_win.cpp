@@ -6,11 +6,10 @@
 #include "base/ScopedWin.h"
 #include "base/Win.h"
 
-// MinGW's winhttp.h redefines INTERNET_SCHEME as int after wininet.h (via Base.h)
-// already typedef'd it as an enum, which is a hard error. MSVC headers are fine
-// together. On MinGW declare only the WinHTTP bits HttpPostUrl needs and link
-// -lwinhttp (see cmd/helper/mingw-build.ts).
-#if defined(__MINGW32__) || defined(__MINGW64__)
+// WinINet from Base.h conflicts with SDK WinHTTP declarations. Declare only the
+// WinHTTP bits HttpPostUrl uses. MSVC links winhttp.lib; MinGW links -lwinhttp
+// (see cmd/helper/mingw-build.ts).
+#if COMPILER_MSVC || COMPILER_MINGW
 #ifndef WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY
 constexpr DWORD WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY = 4;
 #endif
@@ -29,8 +28,20 @@ constexpr DWORD WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY = 4;
 #ifndef WINHTTP_FLAG_SECURE
 constexpr DWORD WINHTTP_FLAG_SECURE = 0x00800000;
 #endif
+#ifndef WINHTTP_FLAG_ASYNC
+constexpr DWORD WINHTTP_FLAG_ASYNC = 0x10000000;
+#endif
 #ifndef WINHTTP_QUERY_STATUS_CODE
 constexpr DWORD WINHTTP_QUERY_STATUS_CODE = 19;
+#endif
+#ifndef WINHTTP_OPTION_RECEIVE_RESPONSE_TIMEOUT
+constexpr DWORD WINHTTP_OPTION_RECEIVE_RESPONSE_TIMEOUT = 7;
+#endif
+#ifndef WINHTTP_OPTION_RECEIVE_TIMEOUT
+constexpr DWORD WINHTTP_OPTION_RECEIVE_TIMEOUT = 6;
+#endif
+#ifndef WINHTTP_OPTION_CONTEXT_VALUE
+constexpr DWORD WINHTTP_OPTION_CONTEXT_VALUE = 45;
 #endif
 #ifndef WINHTTP_QUERY_FLAG_NUMBER
 constexpr DWORD WINHTTP_QUERY_FLAG_NUMBER = 0x20000000;
@@ -41,6 +52,24 @@ constexpr DWORD WINHTTP_QUERY_FLAG_NUMBER = 0x20000000;
 #ifndef WINHTTP_NO_HEADER_INDEX
 #define WINHTTP_NO_HEADER_INDEX ((LPDWORD) nullptr)
 #endif
+constexpr DWORD WINHTTP_CALLBACK_STATUS_HANDLE_CLOSING = 0x00000800;
+constexpr DWORD WINHTTP_CALLBACK_STATUS_HEADERS_AVAILABLE = 0x00020000;
+constexpr DWORD WINHTTP_CALLBACK_STATUS_READ_COMPLETE = 0x00080000;
+constexpr DWORD WINHTTP_CALLBACK_STATUS_REQUEST_ERROR = 0x00200000;
+constexpr DWORD WINHTTP_CALLBACK_STATUS_SENDREQUEST_COMPLETE = 0x00400000;
+constexpr DWORD WINHTTP_CALLBACK_FLAG_HANDLES = WINHTTP_CALLBACK_STATUS_HANDLE_CLOSING;
+constexpr DWORD WINHTTP_CALLBACK_FLAG_HEADERS_AVAILABLE = WINHTTP_CALLBACK_STATUS_HEADERS_AVAILABLE;
+constexpr DWORD WINHTTP_CALLBACK_FLAG_READ_COMPLETE = WINHTTP_CALLBACK_STATUS_READ_COMPLETE;
+constexpr DWORD WINHTTP_CALLBACK_FLAG_REQUEST_ERROR = WINHTTP_CALLBACK_STATUS_REQUEST_ERROR;
+constexpr DWORD WINHTTP_CALLBACK_FLAG_SENDREQUEST_COMPLETE = WINHTTP_CALLBACK_STATUS_SENDREQUEST_COMPLETE;
+constexpr DWORD WINHTTP_CALLBACK_FLAGS = WINHTTP_CALLBACK_FLAG_HANDLES | WINHTTP_CALLBACK_FLAG_HEADERS_AVAILABLE |
+                                         WINHTTP_CALLBACK_FLAG_READ_COMPLETE | WINHTTP_CALLBACK_FLAG_REQUEST_ERROR |
+                                         WINHTTP_CALLBACK_FLAG_SENDREQUEST_COMPLETE;
+struct WinHttpAsyncResult {
+    DWORD_PTR result;
+    DWORD error;
+};
+using WinHttpStatusCallback = void(WINAPI*)(HINTERNET, DWORD_PTR, DWORD, LPVOID, DWORD);
 extern "C" {
 HINTERNET WINAPI WinHttpOpen(LPCWSTR, DWORD, LPCWSTR, LPCWSTR, DWORD);
 HINTERNET WINAPI WinHttpConnect(HINTERNET, LPCWSTR, INTERNET_PORT, DWORD);
@@ -51,9 +80,12 @@ BOOL WINAPI WinHttpQueryHeaders(HINTERNET, DWORD, LPCWSTR, LPVOID, LPDWORD, LPDW
 BOOL WINAPI WinHttpQueryDataAvailable(HINTERNET, LPDWORD);
 BOOL WINAPI WinHttpReadData(HINTERNET, LPVOID, DWORD, LPDWORD);
 BOOL WINAPI WinHttpCloseHandle(HINTERNET);
+BOOL WINAPI WinHttpSetOption(HINTERNET, DWORD, LPVOID, DWORD);
+BOOL WINAPI WinHttpSetTimeouts(HINTERNET, int, int, int, int);
+WinHttpStatusCallback WINAPI WinHttpSetStatusCallback(HINTERNET, WinHttpStatusCallback, DWORD, DWORD_PTR);
 }
-#else
-#include <winhttp.h>
+#endif
+#if COMPILER_MSVC
 #pragma comment(lib, "winhttp.lib")
 #endif
 
@@ -136,6 +168,130 @@ Error:
         rspOut->error = ERROR_GEN_FAILURE;
     }
     goto Exit;
+}
+
+// Bounded GET for worker-owned API calls. Unlike HttpGet, it does not log the
+// URL because query strings can carry document text or authentication tokens.
+bool HttpGetUrl(Str url, HttpRsp* rspOut, const HttpGetOptions& options) {
+    HINTERNET hSession = nullptr;
+    HINTERNET hConnect = nullptr;
+    HINTERNET hRequest = nullptr;
+    DWORD statusCode = 0;
+    DWORD statusSize = sizeof(statusCode);
+    DWORD responseTimeout = 0;
+    rspOut->error = ERROR_SUCCESS;
+    rspOut->httpStatusCode = (DWORD)-1;
+    rspOut->data.Reset();
+    if (options.timeoutMs == 0 || options.maxResponseBytes <= 0) {
+        rspOut->error = ERROR_INVALID_PARAMETER;
+        return false;
+    }
+
+    URL_COMPONENTS uc{};
+    uc.dwStructSize = sizeof(uc);
+    uc.dwSchemeLength = (DWORD)-1;
+    uc.dwHostNameLength = (DWORD)-1;
+    uc.dwUrlPathLength = (DWORD)-1;
+    uc.dwExtraInfoLength = (DWORD)-1;
+    WCHAR* urlW = CWStrTemp(url);
+    if (!InternetCrackUrlW(urlW, 0, 0, &uc)) {
+        rspOut->error = GetLastError();
+        return false;
+    }
+
+    TempWStr host = str::DupTemp(WStr(uc.lpszHostName, (int)uc.dwHostNameLength));
+    TempWStr pathAndQuery = str::DupTemp(WStr(uc.lpszUrlPath, (int)(uc.dwUrlPathLength + uc.dwExtraInfoLength)));
+    DWORD flags = 0;
+    if (uc.nScheme == INTERNET_SCHEME_HTTPS) {
+        flags |= WINHTTP_FLAG_SECURE;
+    }
+
+    hSession =
+        WinHttpOpen(kUserAgent, WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY, WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, 0);
+    if (!hSession) {
+        rspOut->error = GetLastError();
+        goto Exit;
+    }
+    responseTimeout = options.timeoutMs;
+    if (!WinHttpSetTimeouts(hSession, (int)options.timeoutMs, (int)options.timeoutMs, (int)options.timeoutMs,
+                            (int)options.timeoutMs) ||
+        !WinHttpSetOption(hSession, WINHTTP_OPTION_RECEIVE_RESPONSE_TIMEOUT, &responseTimeout,
+                          sizeof(responseTimeout))) {
+        rspOut->error = GetLastError();
+        goto Exit;
+    }
+    hConnect = WinHttpConnect(hSession, host.s, (INTERNET_PORT)uc.nPort, 0);
+    if (!hConnect) {
+        rspOut->error = GetLastError();
+        goto Exit;
+    }
+    hRequest = WinHttpOpenRequest(hConnect, L"GET", pathAndQuery.s, nullptr, WINHTTP_NO_REFERER,
+                                  WINHTTP_DEFAULT_ACCEPT_TYPES, flags);
+    if (!hRequest) {
+        rspOut->error = GetLastError();
+        goto Exit;
+    }
+    if (!WinHttpSetTimeouts(hRequest, (int)options.timeoutMs, (int)options.timeoutMs, (int)options.timeoutMs,
+                            (int)options.timeoutMs) ||
+        !WinHttpSetOption(hRequest, WINHTTP_OPTION_RECEIVE_TIMEOUT, &responseTimeout, sizeof(responseTimeout)) ||
+        !WinHttpSetOption(hRequest, WINHTTP_OPTION_RECEIVE_RESPONSE_TIMEOUT, &responseTimeout,
+                          sizeof(responseTimeout))) {
+        rspOut->error = GetLastError();
+        goto Exit;
+    }
+    if (!WinHttpSendRequest(hRequest, nullptr, 0, nullptr, 0, 0, 0) || !WinHttpReceiveResponse(hRequest, nullptr)) {
+        rspOut->error = GetLastError();
+        goto Exit;
+    }
+
+    if (!WinHttpQueryHeaders(hRequest, WINHTTP_QUERY_STATUS_CODE | WINHTTP_QUERY_FLAG_NUMBER, nullptr, &statusCode,
+                             &statusSize, WINHTTP_NO_HEADER_INDEX)) {
+        rspOut->error = GetLastError();
+        goto Exit;
+    }
+    rspOut->httpStatusCode = statusCode;
+
+    for (;;) {
+        DWORD available = 0;
+        if (!WinHttpQueryDataAvailable(hRequest, &available)) {
+            rspOut->error = GetLastError();
+            goto Exit;
+        }
+        if (available == 0) {
+            break;
+        }
+        int remaining = options.maxResponseBytes - len(rspOut->data);
+        if (remaining < 0 || available > (DWORD)remaining) {
+            rspOut->error = ERROR_FILE_TOO_LARGE;
+            goto Exit;
+        }
+        char buf[4096];
+        DWORD toRead = std::min<DWORD>(available, sizeof(buf));
+        DWORD read = 0;
+        if (!WinHttpReadData(hRequest, buf, toRead, &read)) {
+            rspOut->error = GetLastError();
+            goto Exit;
+        }
+        if (read == 0) {
+            break;
+        }
+        if (!rspOut->data.Append(Str(buf, (int)read))) {
+            rspOut->error = ERROR_NOT_ENOUGH_MEMORY;
+            goto Exit;
+        }
+    }
+
+Exit:
+    if (hRequest) {
+        WinHttpCloseHandle(hRequest);
+    }
+    if (hConnect) {
+        WinHttpCloseHandle(hConnect);
+    }
+    if (hSession) {
+        WinHttpCloseHandle(hSession);
+    }
+    return rspOut->error == ERROR_SUCCESS && rspOut->httpStatusCode >= 200 && rspOut->httpStatusCode < 300;
 }
 
 constexpr const int kBufSize = 256 * 1024;
@@ -353,6 +509,106 @@ TempStr HttpNormalizeHeadersTemp(Str headers) {
     return ToStrTemp(b);
 }
 
+constexpr int kHttpPostReadBufferSize = 8 * 1024;
+
+struct AsyncHttpPost {
+    HINTERNET request = nullptr;
+    HANDLE done = nullptr;
+    HANDLE closed = nullptr;
+    HttpRsp* response = nullptr;
+    int maxResponseBytes = 0;
+    char readBuffer[kHttpPostReadBufferSize];
+    bool finished = false;
+    CRITICAL_SECTION cs;
+};
+
+static void AsyncHttpPostFinish(AsyncHttpPost* post, DWORD error) {
+    if (post->finished) {
+        return;
+    }
+    post->finished = true;
+    post->response->error = error;
+    SetEvent(post->done);
+}
+
+static void AsyncHttpPostRead(AsyncHttpPost* post) {
+    if (WinHttpReadData(post->request, post->readBuffer, dimof(post->readBuffer), nullptr)) {
+        return;
+    }
+    DWORD error = GetLastError();
+    if (error != ERROR_IO_PENDING) {
+        AsyncHttpPostFinish(post, error);
+    }
+}
+
+static void AsyncHttpPostHeaders(AsyncHttpPost* post) {
+    DWORD size = sizeof(post->response->httpStatusCode);
+    if (!WinHttpQueryHeaders(post->request, WINHTTP_QUERY_STATUS_CODE | WINHTTP_QUERY_FLAG_NUMBER,
+                             WINHTTP_HEADER_NAME_BY_INDEX, &post->response->httpStatusCode, &size,
+                             WINHTTP_NO_HEADER_INDEX)) {
+        AsyncHttpPostFinish(post, GetLastError());
+        return;
+    }
+    AsyncHttpPostRead(post);
+}
+
+static void AsyncHttpPostReceive(AsyncHttpPost* post) {
+    if (WinHttpReceiveResponse(post->request, nullptr)) {
+        return;
+    }
+    DWORD error = GetLastError();
+    if (error != ERROR_IO_PENDING) {
+        AsyncHttpPostFinish(post, error);
+    }
+}
+
+static void WINAPI AsyncHttpPostCallback(HINTERNET, DWORD_PTR context, DWORD status, LPVOID data, DWORD dataLen) {
+    auto* post = (AsyncHttpPost*)context;
+    if (!post) {
+        return;
+    }
+    if (status == WINHTTP_CALLBACK_STATUS_HANDLE_CLOSING) {
+        SetEvent(post->closed);
+        return;
+    }
+
+    EnterCriticalSection(&post->cs);
+    if (post->finished) {
+        LeaveCriticalSection(&post->cs);
+        return;
+    }
+    if (status == WINHTTP_CALLBACK_STATUS_SENDREQUEST_COMPLETE) {
+        AsyncHttpPostReceive(post);
+    } else if (status == WINHTTP_CALLBACK_STATUS_HEADERS_AVAILABLE) {
+        AsyncHttpPostHeaders(post);
+    } else if (status == WINHTTP_CALLBACK_STATUS_READ_COMPLETE) {
+        if (dataLen == 0) {
+            AsyncHttpPostFinish(post, ERROR_SUCCESS);
+        } else if (dataLen > (DWORD)(post->maxResponseBytes - len(post->response->data))) {
+            AsyncHttpPostFinish(post, ERROR_FILE_TOO_LARGE);
+        } else if (!post->response->data.Append(Str((char*)data, (int)dataLen))) {
+            AsyncHttpPostFinish(post, ERROR_NOT_ENOUGH_MEMORY);
+        } else {
+            AsyncHttpPostRead(post);
+        }
+    } else if (status == WINHTTP_CALLBACK_STATUS_REQUEST_ERROR) {
+        auto* result = (WinHttpAsyncResult*)data;
+        AsyncHttpPostFinish(post, result ? result->error : ERROR_GEN_FAILURE);
+    }
+    LeaveCriticalSection(&post->cs);
+}
+
+static void AsyncHttpPostClose(AsyncHttpPost* post) {
+    if (!post->request) {
+        return;
+    }
+    EnterCriticalSection(&post->cs);
+    LeaveCriticalSection(&post->cs);
+    WinHttpCloseHandle(post->request);
+    post->request = nullptr;
+    WaitForSingleObject(post->closed, INFINITE);
+}
+
 // POST body to url with an explicit Content-Type and optional extra headers.
 // Blocking, so call it off the ui thread. Returns true on a 2xx; rspOut always
 // carries the status code, the body and the win32 error.
@@ -362,11 +618,25 @@ TempStr HttpNormalizeHeadersTemp(Str headers) {
 // cookies happen to be lying around to a third-party endpoint. For a call meant
 // to be authenticated only by an explicit api key that's a privacy leak.
 // blocking; extraHeaders is "Name: value" per line (\n or \r\n separated)
-bool HttpPostUrl(Str url, Str contentType, Str extraHeaders, Str body, HttpRsp* rspOut) {
-    bool ok = false;
-    DWORD sc = 0;
-    HINTERNET hSession = nullptr, hConnect = nullptr, hRequest = nullptr;
+bool HttpPostUrl(Str url, Str contentType, Str extraHeaders, Str body, HttpRsp* rspOut,
+                 const HttpPostOptions& options) {
+    HINTERNET hSession = nullptr, hConnect = nullptr;
+    AsyncHttpPost post;
+    bool csInitialized = false;
+    bool callbackInstalled = false;
+    TempWStr host, pathAndQuery, hdrsW;
+    TempStr extra;
+    str::Builder hdrs;
+    DWORD responseTimeout = 0;
+    DWORD_PTR context = 0;
+    DWORD wait = 0;
+    DWORD flags = 0;
     rspOut->error = ERROR_SUCCESS;
+    int timeoutMs = (int)options.timeoutMs;
+    if (timeoutMs <= 0 || options.maxResponseBytes <= 0) {
+        rspOut->error = ERROR_INVALID_PARAMETER;
+        return false;
+    }
 
     // InternetCrackUrl (WinINet) rather than WinHttpCrackUrl: same URL_COMPONENTS,
     // and avoids needing the full winhttp.h URL crack API on MinGW.
@@ -382,76 +652,97 @@ bool HttpPostUrl(Str url, Str contentType, Str extraHeaders, Str body, HttpRsp* 
         return false;
     }
 
-    {
-        TempWStr host = str::DupTemp(WStr(uc.lpszHostName, (int)uc.dwHostNameLength));
-        TempWStr pathAndQuery = str::DupTemp(WStr(uc.lpszUrlPath, (int)(uc.dwUrlPathLength + uc.dwExtraInfoLength)));
-
-        hSession = WinHttpOpen(kUserAgent, WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY, WINHTTP_NO_PROXY_NAME,
-                               WINHTTP_NO_PROXY_BYPASS, 0);
-        if (!hSession) {
-            rspOut->error = GetLastError();
-            goto Exit2;
-        }
-        hConnect = WinHttpConnect(hSession, host.s, (INTERNET_PORT)uc.nPort, 0);
-        if (!hConnect) {
-            rspOut->error = GetLastError();
-            goto Exit2;
-        }
-        DWORD flags = (uc.nScheme == INTERNET_SCHEME_HTTPS) ? WINHTTP_FLAG_SECURE : 0;
-        hRequest = WinHttpOpenRequest(hConnect, L"POST", pathAndQuery.s, nullptr, WINHTTP_NO_REFERER,
-                                      WINHTTP_DEFAULT_ACCEPT_TYPES, flags);
-        if (!hRequest) {
-            rspOut->error = GetLastError();
-            goto Exit2;
-        }
-
-        str::Builder hdrs;
-        if (!str::IsEmptyOrWhiteSpace(contentType)) {
-            hdrs.Append(fmt("Content-Type: %s", contentType));
-        }
-        TempStr extra = HttpNormalizeHeadersTemp(extraHeaders);
-        if (!str::IsEmptyOrWhiteSpace(extra)) {
-            if (len(hdrs) > 0) {
-                hdrs.Append(StrL("\r\n"));
-            }
-            hdrs.Append(extra);
-        }
-        TempWStr hdrsW = ToWStrTemp(ToStr(hdrs));
-
-        BOOL sent =
-            WinHttpSendRequest(hRequest, hdrsW.s, (DWORD)-1, (void*)body.s, (DWORD)len(body), (DWORD)len(body), 0);
-        if (!sent || !WinHttpReceiveResponse(hRequest, nullptr)) {
-            rspOut->error = GetLastError();
-            goto Exit2;
-        }
-
-        DWORD scSize = sizeof(sc);
-        WinHttpQueryHeaders(hRequest, WINHTTP_QUERY_STATUS_CODE | WINHTTP_QUERY_FLAG_NUMBER,
-                            WINHTTP_HEADER_NAME_BY_INDEX, &sc, &scSize, WINHTTP_NO_HEADER_INDEX);
-        rspOut->httpStatusCode = sc;
-
-        for (;;) {
-            DWORD avail = 0;
-            if (!WinHttpQueryDataAvailable(hRequest, &avail) || avail == 0) {
-                break;
-            }
-            char* buf = AllocArrayTemp<char>((int)avail + 1);
-            DWORD read = 0;
-            if (!WinHttpReadData(hRequest, buf, avail, &read) || read == 0) {
-                break;
-            }
-            rspOut->data.Append(Str(buf, (int)read));
-            // a runaway response shouldn't eat memory; callers only show a snippet
-            if (len(rspOut->data) > 1024 * 1024) {
-                break;
-            }
-        }
-        ok = sc >= 200 && sc < 300;
+    host = str::DupTemp(WStr(uc.lpszHostName, (int)uc.dwHostNameLength));
+    pathAndQuery = str::DupTemp(WStr(uc.lpszUrlPath, (int)(uc.dwUrlPathLength + uc.dwExtraInfoLength)));
+    InitializeCriticalSection(&post.cs);
+    csInitialized = true;
+    post.done = CreateEventW(nullptr, TRUE, FALSE, nullptr);
+    post.closed = CreateEventW(nullptr, TRUE, FALSE, nullptr);
+    post.response = rspOut;
+    post.maxResponseBytes = options.maxResponseBytes;
+    if (!post.done || !post.closed) {
+        rspOut->error = GetLastError();
+        goto Exit;
     }
 
-Exit2:
-    if (hRequest) {
-        WinHttpCloseHandle(hRequest);
+    hSession = WinHttpOpen(kUserAgent, WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY, WINHTTP_NO_PROXY_NAME,
+                           WINHTTP_NO_PROXY_BYPASS, WINHTTP_FLAG_ASYNC);
+    if (!hSession) {
+        rspOut->error = GetLastError();
+        goto Exit;
+    }
+    responseTimeout = (DWORD)timeoutMs;
+    if (!WinHttpSetTimeouts(hSession, timeoutMs, timeoutMs, timeoutMs, timeoutMs) ||
+        !WinHttpSetOption(hSession, WINHTTP_OPTION_RECEIVE_RESPONSE_TIMEOUT, &responseTimeout,
+                          sizeof(responseTimeout))) {
+        rspOut->error = GetLastError();
+        goto Exit;
+    }
+    hConnect = WinHttpConnect(hSession, host.s, (INTERNET_PORT)uc.nPort, 0);
+    if (!hConnect) {
+        rspOut->error = GetLastError();
+        goto Exit;
+    }
+    flags = (uc.nScheme == INTERNET_SCHEME_HTTPS) ? WINHTTP_FLAG_SECURE : 0;
+    post.request = WinHttpOpenRequest(hConnect, L"POST", pathAndQuery.s, nullptr, WINHTTP_NO_REFERER,
+                                      WINHTTP_DEFAULT_ACCEPT_TYPES, flags);
+    if (!post.request) {
+        rspOut->error = GetLastError();
+        goto Exit;
+    }
+    if (!WinHttpSetTimeouts(post.request, timeoutMs, timeoutMs, timeoutMs, timeoutMs) ||
+        !WinHttpSetOption(post.request, WINHTTP_OPTION_RECEIVE_TIMEOUT, &responseTimeout, sizeof(responseTimeout)) ||
+        !WinHttpSetOption(post.request, WINHTTP_OPTION_RECEIVE_RESPONSE_TIMEOUT, &responseTimeout,
+                          sizeof(responseTimeout))) {
+        rspOut->error = GetLastError();
+        goto Exit;
+    }
+    context = (DWORD_PTR)&post;
+    if (!WinHttpSetOption(post.request, WINHTTP_OPTION_CONTEXT_VALUE, &context, sizeof(context))) {
+        rspOut->error = GetLastError();
+        goto Exit;
+    }
+    if (WinHttpSetStatusCallback(post.request, AsyncHttpPostCallback, WINHTTP_CALLBACK_FLAGS, 0) ==
+        (WinHttpStatusCallback)-1) {
+        rspOut->error = GetLastError();
+        goto Exit;
+    }
+    callbackInstalled = true;
+
+    if (!str::IsEmptyOrWhiteSpace(contentType)) {
+        hdrs.Append(fmt("Content-Type: %s", contentType));
+    }
+    extra = HttpNormalizeHeadersTemp(extraHeaders);
+    if (!str::IsEmptyOrWhiteSpace(extra)) {
+        if (len(hdrs) > 0) {
+            hdrs.Append(StrL("\r\n"));
+        }
+        hdrs.Append(extra);
+    }
+    hdrsW = ToWStrTemp(ToStr(hdrs));
+    if (!WinHttpSendRequest(post.request, hdrsW.s, (DWORD)-1, (void*)body.s, (DWORD)len(body), (DWORD)len(body),
+                            context)) {
+        DWORD error = GetLastError();
+        if (error != ERROR_IO_PENDING) {
+            rspOut->error = error;
+            goto Exit;
+        }
+    }
+
+    wait = WaitForSingleObject(post.done, (DWORD)timeoutMs);
+    if (wait != WAIT_OBJECT_0) {
+        EnterCriticalSection(&post.cs);
+        AsyncHttpPostFinish(&post, wait == WAIT_TIMEOUT ? ERROR_TIMEOUT : GetLastError());
+        LeaveCriticalSection(&post.cs);
+    }
+
+Exit:
+    if (post.request) {
+        if (callbackInstalled) {
+            AsyncHttpPostClose(&post);
+        } else {
+            WinHttpCloseHandle(post.request);
+        }
     }
     if (hConnect) {
         WinHttpCloseHandle(hConnect);
@@ -459,5 +750,14 @@ Exit2:
     if (hSession) {
         WinHttpCloseHandle(hSession);
     }
-    return ok;
+    if (post.done) {
+        CloseHandle(post.done);
+    }
+    if (post.closed) {
+        CloseHandle(post.closed);
+    }
+    if (csInitialized) {
+        DeleteCriticalSection(&post.cs);
+    }
+    return rspOut->error == ERROR_SUCCESS && rspOut->httpStatusCode >= 200 && rspOut->httpStatusCode < 300;
 }

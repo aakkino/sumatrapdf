@@ -108,6 +108,7 @@
 #include "AIChatCommon.h"
 #include "AIChatPanel.h"
 #include "SelectionTranslate.h"
+#include "TranslationConfig.h"
 #include "SelectionHandlers.h"
 #include "GoogleLens.h"
 #include "ThumbnailNavigation.h"
@@ -5671,6 +5672,8 @@ void CloseTab(WindowTab* tab, bool quitIfLast) {
         return;
     }
 
+    CloseTranslatePopupForTab(tab);
+
     // Stop eventual TTS reading. The full reset (rather than just
     // StopReadAloudIfSourceTab) also drops the pointers to this tab held by the
     // playback bar and the session, which is about to be a dangling one
@@ -5834,6 +5837,10 @@ void CloseWindow(MainWindow* win, bool quitIfLast, bool forceClose) {
             }
         }
         return;
+    }
+
+    for (WindowTab* tab : win->Tabs()) {
+        CloseTranslatePopupForTab(tab);
     }
 
     // Stop eventual TTS reading
@@ -9165,6 +9172,7 @@ static void OnFrameKeyEsc(MainWindow* win) {
     if (win->showSelection) {
         // clear the user's text/rect selection (ClearSearchResult only clears
         // find-match highlights since issue #5737, so it can't do this anymore)
+        CloseTranslatePopupForTab(win->CurrentTab());
         DeleteOldSelectionInfo(win, true);
         ClearSearchResult(win); // repaints; also drops any find-match highlights
         ToolbarUpdateStateForWindow(win, false);
@@ -12437,31 +12445,12 @@ static LRESULT FrameOnCommand(MainWindow* win, HWND hwnd, UINT msg, WPARAM wp, L
             break;
 
         case CmdTranslateSelection:
-            ShowSelectionTranslateDialog(tab, TranslateEngine::Default);
+        case CmdTranslateSelectionQuick:
+            ShowSelectionTranslatePopup(tab);
             break;
 
-        case CmdTranslateSelectionWithGoogle:
-            ShowSelectionTranslateDialog(tab, TranslateEngine::Google);
-            break;
-
-        case CmdTranslateSelectionWithDeepL:
-            ShowSelectionTranslateDialog(tab, TranslateEngine::DeepL);
-            break;
-
-        case CmdTranslateSelectionWithGrokBuild:
-            ShowSelectionTranslateDialog(tab, TranslateEngine::Grok);
-            break;
-
-        case CmdTranslateSelectionWithClaudeCode:
-            ShowSelectionTranslateDialog(tab, TranslateEngine::Claude);
-            break;
-
-        case CmdTranslateSelectionWithOpenAICodex:
-            ShowSelectionTranslateDialog(tab, TranslateEngine::Codex);
-            break;
-
-        case CmdTranslateSelectionWithAntiGravity:
-            ShowSelectionTranslateDialog(tab, TranslateEngine::AntiGravity);
+        case CmdConfigureTranslation:
+            ShowTranslationConfig();
             break;
 
         case CmdSearchSelectionWithGoogle:

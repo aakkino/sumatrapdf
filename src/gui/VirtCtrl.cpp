@@ -83,7 +83,7 @@ VirtCtrl* VirtCtrl::AsVirtCtrl() {
 }
 
 void CollectVirtCtrls(ILayout* root, Vec<VirtCtrl*>& out) {
-    if (!root) {
+    if (!root || IsCollapsed(root)) {
         return;
     }
     VirtCtrl* w = root->AsVirtCtrl();
@@ -3482,6 +3482,33 @@ static void CollectVirtCtrls_Test() {
     utassert(out[0] == first);
     utassert(out[1] == nested);
     delete box;
+
+    auto* visible = new VirtSpacer(10, 10);
+    auto* hidden = new VirtSpacer(10, 10);
+    auto* collapsed = new VBox();
+    collapsed->AddChild(hidden);
+    auto* withCollapsed = new VBox();
+    withCollapsed->AddChild(visible);
+    withCollapsed->AddChild(collapsed);
+    collapsed->SetVisibility(Visibility::Collapse);
+    VecReset(out);
+    CollectVirtCtrls(withCollapsed, out);
+    utassert(len(out) == 1);
+    utassert(out[0] == visible);
+
+    collapsed->SetVisibility(Visibility::Visible);
+    VecReset(out);
+    CollectVirtCtrls(withCollapsed, out);
+    utassert(len(out) == 2);
+    utassert(out[0] == visible);
+    utassert(out[1] == hidden);
+
+    collapsed->SetVisibility(Visibility::Collapse);
+    VecReset(out);
+    CollectVirtCtrls(withCollapsed, out);
+    utassert(len(out) == 1);
+    utassert(out[0] == visible);
+    delete withCollapsed;
 }
 
 static void CollectTabStops_Test() {

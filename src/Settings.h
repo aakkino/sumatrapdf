@@ -833,9 +833,32 @@ struct Settings {
     // remembered source language for selection translation; empty means
     // Auto
     Str translateFromLang;
-    // remembered engine for Translate Selection: Google, DeepL, Grok
-    // Build, Claude Code, OpenAI Codex or Antigravity
+    // legacy remembered engine for Translate Selection; ignored by HTTP
+    // translation providers
     Str translateEngine;
+    // provider for selection translation: OpenAI-compatible, Google Cloud
+    // Translation or Microsoft Translator; empty disables requests
+    Str translationProvider;
+    // base URL for the OpenAI-compatible translation API;
+    // /chat/completions is added automatically
+    Str translationOpenAIBaseUrl;
+    // model for the OpenAI-compatible translation API
+    Str translationOpenAIModel;
+    // API key for the OpenAI-compatible translation API; stored in plain
+    // text in this settings file
+    Str translationOpenAIKey;
+    // API key for Google Cloud Translation; stored in plain text in this
+    // settings file
+    Str translationGoogleKey;
+    // endpoint for Microsoft Translator, for example
+    // https://api.cognitive.microsofttranslator.com
+    Str translationMicrosoftEndpoint;
+    // API key for Microsoft Translator; stored in plain text in this
+    // settings file
+    Str translationMicrosoftKey;
+    // optional region for a regional or multi-service Microsoft Translator
+    // resource
+    Str translationMicrosoftRegion;
     // ISO code of the current UI language
     Str uiLanguage;
     // SumatraPDF won't offer to update to this version again
@@ -2005,6 +2028,14 @@ static const FieldInfo gSettingsFields[] = {
     {offsetof(Settings, translateToLang), SettingType::String, (intptr_t)"", true},
     {offsetof(Settings, translateFromLang), SettingType::String, (intptr_t)"", true},
     {offsetof(Settings, translateEngine), SettingType::String, (intptr_t)"", true},
+    {offsetof(Settings, translationProvider), SettingType::String, 0},
+    {offsetof(Settings, translationOpenAIBaseUrl), SettingType::String, 0},
+    {offsetof(Settings, translationOpenAIModel), SettingType::String, 0},
+    {offsetof(Settings, translationOpenAIKey), SettingType::String, 0},
+    {offsetof(Settings, translationGoogleKey), SettingType::String, 0},
+    {offsetof(Settings, translationMicrosoftEndpoint), SettingType::String, 0},
+    {offsetof(Settings, translationMicrosoftKey), SettingType::String, 0},
+    {offsetof(Settings, translationMicrosoftRegion), SettingType::String, 0},
     {(size_t)-1, SettingType::Comment, 0},
     {offsetof(Settings, annotations), SettingType::Struct, (intptr_t)&gAnnotationsInfo},
     {(size_t)-1, SettingType::Comment, 0},
@@ -2046,7 +2077,7 @@ static const FieldInfo gSettingsFields[] = {
 };
 static const StructInfo gSettingsInfo = {
     sizeof(Settings),
-    147,
+    155,
     gSettingsFields,
     "\0\0DefaultDisplayMode\0DefaultZoom\0DisableJavaScript\0AllowExternalImages\0EnableTeXEnhancements\0EscToExit\0Ful"
     "lPathInTitle\0InverseSearchCmdLine\0LazyLoading\0MainWindowBackground\0NoHomeTab\0HomePageSortByFrequentlyRead\0Ho"
@@ -2062,10 +2093,12 @@ static const StructInfo gSettingsInfo = {
     "nhance\0DisableAutoLinks\0UseSysColors\0UseTabs\0SelectionToolbar\0SelectionToolbarLayout\0TabsMru\0CtrlTabSimple"
     "\0ZoomLevels\0ZoomIncrement\0\0FixedPageUI\0\0EBookUI\0\0ComicBookUI\0\0ImageUI\0\0ChmUI\0\0MarkdownUI\0\0HtmlUI\0"
     "\0ClaudeCode\0\0GrokBuild\0\0CodexBuild\0\0AntiGravity\0\0AIChatSidebarDx\0\0TranslateToLang\0TranslateFromLang\0T"
-    "ranslateEngine\0\0Annotations\0\0ExternalViewers\0\0ForwardSearch\0\0PrinterDefaults\0\0Fullscreen\0\0SelectionHan"
-    "dlers\0\0Shortcuts\0\0Themes\0\0TabGroups\0\0CustomScreenDPI\0\0\0DefaultPasswords\0UiLanguage\0VersionToSkip\0Win"
-    "dowState\0WindowPos\0SearchUIWindowPos\0HelpWindowPos\0FileStates\0SessionData\0ReopenOnce\0TimeOfLastUpdateCheck"
-    "\0OpenCountWeek\0PropWinPos\0CheckForUpdates\0\0",
+    "ranslateEngine\0TranslationProvider\0TranslationOpenAIBaseUrl\0TranslationOpenAIModel\0TranslationOpenAIKey\0Trans"
+    "lationGoogleKey\0TranslationMicrosoftEndpoint\0TranslationMicrosoftKey\0TranslationMicrosoftRegion\0\0Annotations"
+    "\0\0ExternalViewers\0\0ForwardSearch\0\0PrinterDefaults\0\0Fullscreen\0\0SelectionHandlers\0\0Shortcuts\0\0Themes"
+    "\0\0TabGroups\0\0CustomScreenDPI\0\0\0DefaultPasswords\0UiLanguage\0VersionToSkip\0WindowState\0WindowPos\0SearchU"
+    "IWindowPos\0HelpWindowPos\0FileStates\0SessionData\0ReopenOnce\0TimeOfLastUpdateCheck\0OpenCountWeek\0PropWinPos\0"
+    "CheckForUpdates\0\0",
     "\0\0default layout of pages. valid values: automatic, single page, facing, book view, continuous, continuous "
     "facing, continuous book view, page aspect. page aspect (3.7+): first open of a PDF, XPS, DjVu or PostScript file "
     "uses page 1 — taller than wide is continuous + fit width, wider than tall is single page + fit page; a remembered "
@@ -2172,13 +2205,19 @@ static const StructInfo gSettingsInfo = {
     "chat sidebar\0\0settings for the OpenAI Codex chat sidebar\0\0settings for the Antigravity chat sidebar\0\0width "
     "of the AI chat sidebar (0 = use default); shared by Claude Code, Grok Build, and OpenAI Codex "
     "(internal)\0\0remembered destination language for selection translation; empty uses OS UI language\0remembered "
-    "source language for selection translation; empty means Auto\0remembered engine for Translate Selection: Google, "
-    "DeepL, Grok Build, Claude Code, OpenAI Codex or Antigravity\0\0default values for annotations in PDF "
-    "documents\0\0list of additional external viewers for various file types. See [docs for more "
-    "information](https://www.sumatrapdfreader.org/docs/Customize-external-viewers)\0\0customization options for how "
-    "forward search results are shown (used from LaTeX editors)\0\0these override the default settings in the Print "
-    "dialog\0\0options for fullscreen mode\0\0list of handlers for selected text, shown in context menu when text "
-    "selection is active. See [docs for more "
+    "source language for selection translation; empty means Auto\0legacy remembered engine for Translate Selection; "
+    "ignored by HTTP translation providers\0provider for selection translation: OpenAI-compatible, Google Cloud "
+    "Translation or Microsoft Translator; empty disables requests\0base URL for the OpenAI-compatible translation API; "
+    "/chat/completions is added automatically\0model for the OpenAI-compatible translation API\0API key for the "
+    "OpenAI-compatible translation API; stored in plain text in this settings file\0API key for Google Cloud "
+    "Translation; stored in plain text in this settings file\0endpoint for Microsoft Translator, for example "
+    "https://api.cognitive.microsofttranslator.com\0API key for Microsoft Translator; stored in plain text in this "
+    "settings file\0optional region for a regional or multi-service Microsoft Translator resource\0\0default values "
+    "for annotations in PDF documents\0\0list of additional external viewers for various file types. See [docs for "
+    "more information](https://www.sumatrapdfreader.org/docs/Customize-external-viewers)\0\0customization options for "
+    "how forward search results are shown (used from LaTeX editors)\0\0these override the default settings in the "
+    "Print dialog\0\0options for fullscreen mode\0\0list of handlers for selected text, shown in context menu when "
+    "text selection is active. See [docs for more "
     "information](https://www.sumatrapdfreader.org/docs/Customize-search-translation-services)\0\0custom keyboard "
     "shortcuts\0\0color themes\0\0saved groups of tabs\0\0actual resolution of the main screen in DPI, used to show "
     "documents at their physical size; if 0 or negative, the resolution reported by Windows is used\0\0You're not "
