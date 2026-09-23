@@ -102,6 +102,7 @@ UINT_PTR disableIfNoSelection[] = {
     CmdFindNextSel,
     CmdFindPrevSel,
     CmdTranslateSelection,
+    CmdTranslateSelectionQuick,
     CmdTranslateSelectionWithDeepL,
     CmdTranslateSelectionWithGoogle,
     CmdTranslateSelectionWithGrokBuild,
@@ -165,6 +166,7 @@ static UINT_PTR removeIfNoPrefsPerms[] = {
 
 static UINT_PTR removeIfNoCopyPerms[] = {
     CmdTranslateSelection,
+    CmdTranslateSelectionQuick,
     CmdTranslateSelectionWithGoogle,
     CmdTranslateSelectionWithDeepL,
     CmdSearchSelectionWithGoogle,
@@ -301,6 +303,7 @@ static i32 gBlacklistCommandsFromPalette[] = {
     CmdOpenAttachment,
     CmdCreateShortcutToFile,
     CmdSetDocumentColorsFollowTheme,
+    CmdTranslateSelectionQuick,
     0,
 };
 

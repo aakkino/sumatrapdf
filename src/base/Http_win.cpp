@@ -6,11 +6,10 @@
 #include "base/ScopedWin.h"
 #include "base/Win.h"
 
-// MinGW's winhttp.h redefines INTERNET_SCHEME as int after wininet.h (via Base.h)
-// already typedef'd it as an enum, which is a hard error. MSVC headers are fine
-// together. On MinGW declare only the WinHTTP bits HttpPostUrl needs and link
-// -lwinhttp (see cmd/helper/mingw-build.ts).
-#if defined(__MINGW32__) || defined(__MINGW64__)
+// WinINet from Base.h conflicts with SDK WinHTTP declarations. Declare only the
+// WinHTTP bits HttpPostUrl uses. MSVC links winhttp.lib; MinGW links -lwinhttp
+// (see cmd/helper/mingw-build.ts).
+#if COMPILER_MSVC || COMPILER_MINGW
 #ifndef WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY
 constexpr DWORD WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY = 4;
 #endif
@@ -52,8 +51,8 @@ BOOL WINAPI WinHttpQueryDataAvailable(HINTERNET, LPDWORD);
 BOOL WINAPI WinHttpReadData(HINTERNET, LPVOID, DWORD, LPDWORD);
 BOOL WINAPI WinHttpCloseHandle(HINTERNET);
 }
-#else
-#include <winhttp.h>
+#endif
+#if COMPILER_MSVC
 #pragma comment(lib, "winhttp.lib")
 #endif
 

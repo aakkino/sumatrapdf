@@ -56,6 +56,7 @@ void HideTouchSelHandles(MainWindow* win);
 bool IsRectangularSelection(MainWindow* win);
 Rect GetRectangularSelectionScreenRect(MainWindow* win);
 bool GetSelectionScreenRect(WindowTab* tab, Rect& out);
+bool GetVisibleSelectionBounds(MainWindow* win, Rect& out);
 TempStr FormatSelectionPositionTemp(WindowTab* tab);
 SelectionDragEdge HitTestRectangularSelection(MainWindow* win, int x, int y);
 LPWSTR CursorIdForSelectionEdge(SelectionDragEdge edge);

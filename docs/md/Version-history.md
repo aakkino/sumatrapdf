@@ -17,6 +17,7 @@ Available in [pre-release](https://www.sumatrapdfreader.org/prerelease) builds.
 - SelectionHandlers `${selection}` in a `URL` percent-encodes reserved characters (`?`, `"`, `&`, `#`, …) so they stay part of the value instead of starting a new query or cutting the string (discussion #6029)
 - SelectionHandlers `URL`, `Exe` and POST `Body` accept `${selectionPosition}`: the current selection's bounding box in screen pixels as `x,y,dx,dy`, so a helper can place itself next to the selection (discussion #6015)
 - The floating selection toolbar uses SVG icons for every built-in action, sharing the PDF annotation toolbar’s icons for annotation actions and following `ToolbarSize`. Its built-in buttons can be chosen, reordered, and separated with `|` in `SelectionToolbarLayout`, the same idea as `ToolbarCustomLayout`. Custom handler SVG buttons use their `Name` as a tooltip (discussion #6015, fixes #6048)
+- The default floating selection toolbar's **Translate Selection** action opens a result popup beside the selection with the remembered installed AI CLI. It leaves the document active, follows scrolling, and keeps the full **Translate Selection...** dialog available from the context menu, command palette, and explicit `SelectionToolbarLayout` entries
 - Creating a highlight, underline, squiggly, or strike-out annotation from a text selection leaves the selection and the floating selection toolbar in place, so you can copy the same span or apply another markup without selecting again
 - Text selection uses the font’s height for the highlight box and a 1-pixel outline, as in 3.6.1, instead of a tight glyph-ink box that left little padding above words such as “compass”
 - **Ctrl+Delete** deletes the annotation under the cursor, even while a different annotation is selected in the list
@@ -335,6 +336,7 @@ Available in [pre-release](https://www.sumatrapdfreader.org/prerelease) builds.
 - `CmdToggleWindowsPreviewer` : "Toggle Windows Previewer"
 - `CmdToggleWindowsSearchFilter` : "Toggle Windows Search Filter"
 - `CmdTranslateSelection` : "Translate Selection..." — dialog to translate the current selection
+- `CmdTranslateSelectionQuick` : "Translate Selection" — quick popup from the default selection toolbar
 - `CmdTranslateSelectionWithClaudeCode` : "Translate Selection with Claude Code"
 - `CmdTranslateSelectionWithGrokBuild` : "Translate Selection with Grok Build"
 - `CmdTranslateSelectionWithOpenAICodex` : "Translate Selection with OpenAI Codex"

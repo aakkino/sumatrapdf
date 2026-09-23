@@ -781,6 +781,7 @@ enum class ControlCmd : u16 {
     TestFindUiState = 78,
     TestRenderViewPrint = 79,
     TestReadAloudPlaybackBar = 80,
+    TestSelectionTranslatePopup = 81,
 };
 
 enum class ControlArgType : u16 {
@@ -1138,6 +1139,19 @@ static void ExecuteControlRequest(ControlRequest* req) {
             }
             int exitCode = 0;
             Str res = SelectionTranslateResultTemp(backend, srcLang, dstLang, text, &exitCode);
+            AppendTestResult(req, exitCode, res);
+            break;
+        }
+
+        case ControlCmd::TestSelectionTranslatePopup: {
+            Str action = StringArg(req, 0);
+            Str value = StringArg(req, 1);
+            if (!action) {
+                AppendError(req, StrL("TestSelectionTranslatePopup expects string action [, string value]"));
+                break;
+            }
+            int exitCode = 0;
+            Str res = SelectionTranslatePopupTestTemp(action, value, &exitCode);
             AppendTestResult(req, exitCode, res);
             break;
         }
