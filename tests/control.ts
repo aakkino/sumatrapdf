@@ -10,11 +10,10 @@ export enum ControlCommand {
   TestDest = 12,
   TestNamedDest = 13,
   TestChm = 14,
-  TestSelectionTranslate = 15,
   TestTripleClickLineSelect = 16,
   TestContextMenuSelection = 17,
   TestGoToFindMatch = 18,
-  // IDs 19-21 unused (reserved on the -dbg-control wire protocol; do not renumber).
+  // IDs 15 and 19-21 are unused (reserved on the -dbg-control wire protocol; do not renumber).
   // Assign new test commands starting at 23.
   TestInverseSearch = 22,
   TestImageResizeArrowKey = 23,
@@ -77,6 +76,7 @@ export enum ControlCommand {
   TestReadAloudPlaybackBar = 80,
   TestSelectionTranslatePopup = 81,
   TestTranslationApi = 82,
+  TestTranslationConfig = 83,
 }
 
 export type ControlArg = number | string | Uint8Array | ControlArg[];

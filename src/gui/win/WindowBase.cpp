@@ -1526,14 +1526,8 @@ void ControlBase::SetVisibility(Visibility newVisibility) {
     }
     visibility = newVisibility;
     bool isVisible = IsVisible();
-    // see WindowBase::SetVisibility(): only a WS_CHILD window can be shown by
-    // flipping WS_VISIBLE
-    if (!HwndIsWindowStyleSet(hwnd, WS_CHILD)) {
-        ::ShowWindow(hwnd, isVisible ? SW_SHOW : SW_HIDE);
-    } else {
-        BOOL bIsVisible = toBOOL(isVisible);
-        HwndSetWindowStyle(hwnd, WS_VISIBLE, bIsVisible);
-    }
+    // Native controls need the show/hide lifecycle to repaint non-client frames.
+    ::ShowWindow(hwnd, isVisible ? SW_SHOW : SW_HIDE);
 }
 
 void ControlBase::SetIsVisible(bool isVisible) {

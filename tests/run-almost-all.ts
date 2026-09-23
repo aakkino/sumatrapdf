@@ -226,6 +226,7 @@ import { testit as selectionToolbarStays } from "./selection-toolbar-stays.ts";
 import { testit as selectionToolbarMove } from "./selection-toolbar-move.ts";
 import { testit as selectionTranslatePopup } from "./selection-translate-popup.ts";
 import { testit as translationApi } from "./translation-api.ts";
+import { testit as translationConfig } from "./translation-config.ts";
 import { testit as selectionFontBbox } from "./selection-font-bbox.ts";
 import { testit as issue4839 } from "./issue-4839.ts";
 import { testit as issue6023 } from "./issue-6023.ts";
@@ -457,6 +458,7 @@ export const tests: NamedTest[] = [
   ["selection-toolbar-move", selectionToolbarMove],
   ["selection-translate-popup", selectionTranslatePopup],
   ["translation-api", translationApi],
+  ["translation-config", translationConfig],
   ["selection-font-bbox", selectionFontBbox],
   ["issue-4839", issue4839],
   ["issue-6023", issue6023],

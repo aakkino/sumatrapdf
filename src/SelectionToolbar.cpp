@@ -140,6 +140,9 @@ static void CollectBuiltInSelectionToolbarCmds(Vec<int>& out) {
             logf("SelectionToolbarLayout: no selection-toolbar button for '%s'\n", tok);
             continue;
         }
+        if (found->cmdId == CmdTranslateSelection) {
+            found = FindCandidateButton(CmdTranslateSelectionQuick);
+        }
         bool already = false;
         for (int i = 0; i < len(out); i++) {
             if (out[i] == found->cmdId) {

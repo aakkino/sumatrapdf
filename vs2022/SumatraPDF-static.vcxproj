@@ -1267,6 +1267,7 @@
     <ClInclude Include="..\src\Theme.h" />
     <ClInclude Include="..\src\ThumbnailNavigation.h" />
     <ClInclude Include="..\src\Toolbar.h" />
+    <ClInclude Include="..\src\TranslationConfig.h" />
     <ClInclude Include="..\src\TranslationService.h" />
     <ClInclude Include="..\src\Translations.h" />
     <ClInclude Include="..\src\UpdateCheck.h" />
@@ -1553,6 +1554,7 @@
     <ClCompile Include="..\src\ThumbnailNavigation.cpp" />
     <ClCompile Include="..\src\Toolbar.cpp" />
     <ClCompile Include="..\src\Toolbar_win.cpp" />
+    <ClCompile Include="..\src\TranslationConfig.cpp" />
     <ClCompile Include="..\src\TranslationLangs.cpp" />
     <ClCompile Include="..\src\TranslationService.cpp" />
     <ClCompile Include="..\src\Translations.cpp" />

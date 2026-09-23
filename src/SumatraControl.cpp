@@ -39,6 +39,7 @@
 #include "FileHistory.h"
 #include "Favorites.h"
 #include "SelectionTranslate.h"
+#include "TranslationConfig.h"
 #include "TranslationService.h"
 #include "ImageSaveCropResize.h"
 #include "base/GuessFileType.h"
@@ -717,11 +718,10 @@ enum class ControlCmd : u16 {
     TestDest = 12,
     TestNamedDest = 13,
     TestChm = 14,
-    TestSelectionTranslate = 15,
     TestTripleClickLineSelect = 16,
     TestContextMenuSelection = 17,
     TestGoToFindMatch = 18,
-    // IDs 19-21 unused (reserved on the -dbg-control wire protocol; do not renumber).
+    // IDs 15 and 19-21 are unused (reserved on the -dbg-control wire protocol; do not renumber).
     // Assign new test commands starting at 23.
     TestInverseSearch = 22,
     TestImageResizeArrowKey = 23,
@@ -784,6 +784,7 @@ enum class ControlCmd : u16 {
     TestReadAloudPlaybackBar = 80,
     TestSelectionTranslatePopup = 81,
     TestTranslationApi = 82,
+    TestTranslationConfig = 83,
 };
 
 enum class ControlArgType : u16 {
@@ -1187,23 +1188,6 @@ static void ExecuteControlRequest(ControlRequest* req) {
             break;
         }
 
-        case ControlCmd::TestSelectionTranslate: {
-            i32 backend = 0;
-            Str srcLang = StringArg(req, 1);
-            Str dstLang = StringArg(req, 2);
-            Str text = StringArg(req, 3);
-            if (!IntArg(req, 0, backend) || !srcLang || !dstLang || !text) {
-                AppendError(
-                    req,
-                    StrL("TestSelectionTranslate expects int backend, string srcLang, string dstLang, string text"));
-                break;
-            }
-            int exitCode = 0;
-            Str res = SelectionTranslateResultTemp(backend, srcLang, dstLang, text, &exitCode);
-            AppendTestResult(req, exitCode, res);
-            break;
-        }
-
         case ControlCmd::TestSelectionTranslatePopup: {
             Str action = StringArg(req, 0);
             Str value = StringArg(req, 1);
@@ -1229,6 +1213,19 @@ static void ExecuteControlRequest(ControlRequest* req) {
             }
             AppendTestResult(req, 0,
                              TranslationApiTestResultTemp(endpoint, sourceLanguage, targetLanguage, text, timeoutMs));
+            break;
+        }
+
+        case ControlCmd::TestTranslationConfig: {
+            Str action = StringArg(req, 0);
+            Str value = StringArg(req, 1);
+            if (!action) {
+                AppendError(req, StrL("TestTranslationConfig expects string action [, string value]"));
+                break;
+            }
+            int exitCode = 0;
+            Str res = TranslationConfigTestTemp(action, value, &exitCode);
+            AppendTestResult(req, exitCode, res);
             break;
         }
 

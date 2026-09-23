@@ -708,6 +708,7 @@ function sumatrapdf_files()
     "SelectionHandlers.*",
     "SelectionToolbar.*",
     "SelectionTranslate.*",
+    "TranslationConfig.*",
     "TranslationService.*",
     "ThumbnailNavigation.*",
     "Settings.h",

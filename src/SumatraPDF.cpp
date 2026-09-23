@@ -108,6 +108,7 @@
 #include "AIChatCommon.h"
 #include "AIChatPanel.h"
 #include "SelectionTranslate.h"
+#include "TranslationConfig.h"
 #include "SelectionHandlers.h"
 #include "GoogleLens.h"
 #include "ThumbnailNavigation.h"
@@ -12444,35 +12445,12 @@ static LRESULT FrameOnCommand(MainWindow* win, HWND hwnd, UINT msg, WPARAM wp, L
             break;
 
         case CmdTranslateSelection:
-            ShowSelectionTranslateDialog(tab, TranslateEngine::Default);
-            break;
-
         case CmdTranslateSelectionQuick:
             ShowSelectionTranslatePopup(tab);
             break;
 
-        case CmdTranslateSelectionWithGoogle:
-            ShowSelectionTranslateDialog(tab, TranslateEngine::Google);
-            break;
-
-        case CmdTranslateSelectionWithDeepL:
-            ShowSelectionTranslateDialog(tab, TranslateEngine::DeepL);
-            break;
-
-        case CmdTranslateSelectionWithGrokBuild:
-            ShowSelectionTranslateDialog(tab, TranslateEngine::Grok);
-            break;
-
-        case CmdTranslateSelectionWithClaudeCode:
-            ShowSelectionTranslateDialog(tab, TranslateEngine::Claude);
-            break;
-
-        case CmdTranslateSelectionWithOpenAICodex:
-            ShowSelectionTranslateDialog(tab, TranslateEngine::Codex);
-            break;
-
-        case CmdTranslateSelectionWithAntiGravity:
-            ShowSelectionTranslateDialog(tab, TranslateEngine::AntiGravity);
+        case CmdConfigureTranslation:
+            ShowTranslationConfig();
             break;
 
         case CmdSearchSelectionWithGoogle:

@@ -71,6 +71,7 @@ Str TranslationProviderName(TranslationProviderId provider);
 void TranslationSettingsFromGlobal(TranslationSettings* settingsOut);
 bool TranslationProviderIsConfigured(const TranslationSettings& settings);
 TempStr TranslationConfigErrorTemp(const TranslationSettings& settings);
+Str TranslationLanguageLabel(int index);
 TempStr TranslationLanguageCodeTemp(TranslationProviderId provider, Str language);
 bool TranslationSourceIsAuto(Str language);
 TempStr NormalizeOpenAIBaseUrlTemp(Str url);

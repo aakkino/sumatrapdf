@@ -1,11 +1,11 @@
 // The quick translation popup keeps the document interactive and ignores a
 // completion for a request that was closed or superseded.
 
-import { mkdirSync, rmSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
-import { ControlClient, ControlCommand } from "./control.ts";
-import { cmdId, runStandalone, SLOW_BUILD_FACTOR, tmpPath } from "./util.ts";
-import { killAndWait, launchControlled, pressKey, sendCommandSync } from "./win-automation.ts";
+import { copyFileSync, existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { basename, dirname, join } from "node:path";
+import { ControlClient, ControlCommand, withControlledSumatra } from "./control.ts";
+import { cmdId, EXE, runStandalone, SLOW_BUILD_FACTOR, tmpPath } from "./util.ts";
+import { killAndWait, launchControlled, pressKey, sendCommandSync, waitForFrame } from "./win-automation.ts";
 import {
   getFocusedHwnd,
   getWindowRect,
@@ -24,6 +24,9 @@ import {
 const VK_END = 0x23;
 const VK_HOME = 0x24;
 const LINE = "The quick brown fox jumps over the lazy dog";
+const SIDE_BY_SIDE_DLLS = ["libsumatrapdf.dll", "clang_rt.asan_dynamic-x86_64.dll"].map((name) =>
+  join(dirname(EXE), name),
+);
 
 function makeTextPdf(): Buffer {
   const enc = (s: string) => Buffer.from(s, "latin1");
@@ -55,7 +58,7 @@ function makeTextPdf(): Buffer {
   return Buffer.concat(parts);
 }
 
-function writeAppData(dir: string): void {
+function writeAppData(dir: string, translationSettings = ["TranslationProvider = Google Cloud Translation"]): void {
   rmSync(dir, { recursive: true, force: true });
   mkdirSync(dir, { recursive: true });
   writeFileSync(
@@ -65,7 +68,7 @@ function writeAppData(dir: string): void {
       "CheckForUpdates = false",
       "ShowToc = false",
       "SelectionToolbar = true",
-      "TranslateEngine = Google",
+      ...translationSettings,
       "TranslateFromLang = Auto",
       "TranslateToLang = English",
       "",
@@ -125,6 +128,90 @@ function parseRequest(raw: string): number {
   return Number(match[1]);
 }
 
+function expectNoRequest(raw: string, action: string): void {
+  expectState(raw, "Hidden");
+  if (!/^request=0$/m.test(raw)) {
+    throw new Error(`selection-translate-popup: ${action} allocated a request\n${raw}`);
+  }
+}
+
+function writeRestrictedExe(): string {
+  const dir = tmpPath("selection-translate-popup-no-internet-exe");
+  rmSync(dir, { recursive: true, force: true });
+  mkdirSync(dir, { recursive: true });
+
+  const exe = join(dir, "SumatraPDF.exe");
+  copyFileSync(EXE, exe);
+  for (const dll of SIDE_BY_SIDE_DLLS) {
+    if (existsSync(dll)) {
+      copyFileSync(dll, join(dir, basename(dll)));
+    }
+  }
+  writeFileSync(
+    join(dir, "sumatrapdfrestrict.ini"),
+    ["[Policies]", "InternetAccess = 0", "DiskAccess = 1", "CopySelection = 1", ""].join("\n"),
+  );
+  return exe;
+}
+
+async function testNoInternetPopup(pdf: string): Promise<void> {
+  const exe = writeRestrictedExe();
+  const appdata = tmpPath("selection-translate-popup-no-internet-appdata");
+  writeAppData(appdata, [
+    "TranslationProvider = OpenAI-compatible",
+    "TranslationOpenAIBaseUrl = /",
+    "TranslationOpenAIModel = test-model",
+    "TranslationOpenAIKey = test-key",
+  ]);
+
+  await withControlledSumatra(
+    exe,
+    async (client, proc) => {
+      const frame = await waitForFrame(proc.pid!);
+      if (!frame) {
+        throw new Error("selection-translate-popup: restricted window did not appear");
+      }
+      await client.waitForRenderIdle();
+      await client.setNotificationsEnabled(false);
+      const policies = await client.request(ControlCommand.TestGetPolicies);
+      const policyDump = String(policies[1] ?? "");
+      if (policies[0] !== 0 || !/^internet=0$/m.test(policyDump) || !/^copy=1$/m.test(policyDump)) {
+        throw new Error(`selection-translate-popup: restricted policy setup failed\n${policyDump}`);
+      }
+
+      sendCommandSync(frame, cmdId("CmdSelectTextViaKeyboard"));
+      postMessage(frame, WM_CHAR, "v".charCodeAt(0), 0);
+      pressVKey(frame, VK_END);
+      await waitForToolbar(client);
+
+      sendCommandSync(frame, cmdId("CmdTranslateSelectionQuick"));
+      const creation = await popup(client, "dump");
+      expectNoRequest(creation, "creation without InternetAccess");
+      if (!/^toolbarHides=0$/m.test(creation)) {
+        throw new Error(`selection-translate-popup: creation hid the toolbar without InternetAccess\n${creation}`);
+      }
+      await waitForToolbar(client);
+
+      expectNoRequest(await popup(client, "start-worker"), "Start worker without InternetAccess");
+      await waitForToolbar(client);
+
+      expectState(await popup(client, "prepare"), "Hidden");
+      const switched = await popup(client, "switch-worker", "Microsoft Translator");
+      expectNoRequest(switched, "SwitchProvider worker without InternetAccess");
+      if (!/^persisted=OpenAI-compatible$/m.test(switched)) {
+        throw new Error(`selection-translate-popup: SwitchProvider ran without InternetAccess\n${switched}`);
+      }
+      await waitForToolbar(client);
+
+      expectState(await popup(client, "prepare"), "Hidden");
+      expectNoRequest(await popup(client, "retry-worker"), "Retry worker without InternetAccess");
+      await waitForToolbar(client);
+    },
+    ["-appdata", appdata, pdf],
+    { cwd: dirname(exe) },
+  );
+}
+
 export async function testit(): Promise<void> {
   setProcessDpiAware();
 
@@ -153,16 +240,15 @@ export async function testit(): Promise<void> {
     }
     const invalid = await popup(client, "dump");
     expectState(invalid, "Error");
-    if (!/^configure=1$/m.test(invalid) || !/^visible=1$/m.test(invalid)) {
-      throw new Error(`selection-translate-popup: invalid engine did not show configure error\n${invalid}`);
+    if (!/^configure=1$/m.test(invalid) || !/^visible=1$/m.test(invalid) || !/^loadingTimer=0$/m.test(invalid)) {
+      throw new Error(`selection-translate-popup: incomplete provider did not show configure error\n${invalid}`);
     }
     if (
       !/^switcher=1$/m.test(invalid) ||
-      !/^engine=Default$/m.test(invalid) ||
-      !/^provider=Choose Engine$/m.test(invalid) ||
+      !/^provider=Google Cloud Translation$/m.test(invalid) ||
       !/^target=English$/m.test(invalid)
     ) {
-      throw new Error(`selection-translate-popup: invalid engine switcher missing\n${invalid}`);
+      throw new Error(`selection-translate-popup: invalid provider switcher missing\n${invalid}`);
     }
     if (getFocusedHwnd(frame) !== focusedBefore) {
       throw new Error("selection-translate-popup: showing the popup stole keyboard focus");
@@ -178,11 +264,15 @@ export async function testit(): Promise<void> {
     expectState(loading, "Loading");
     if (
       !/^switcher=1$/m.test(loading) ||
-      !/^engine=OpenAI Codex$/m.test(loading) ||
-      !/^provider=OpenAI Codex$/m.test(loading) ||
+      !/^provider=OpenAI-compatible$/m.test(loading) ||
+      !/^polish=rounded:[01],shadow:[01],icon:1,dividers:2$/m.test(loading) ||
+      !/^loadingTimer=1$/m.test(loading) ||
+      !/^providers=OpenAI-compatible:configured,Google Cloud Translation:not-configured,Microsoft Translator:configured$/m.test(
+        loading,
+      ) ||
       !/^target=English$/m.test(loading)
     ) {
-      throw new Error(`selection-translate-popup: active engine switcher missing\n${loading}`);
+      throw new Error(`selection-translate-popup: active provider switcher missing\n${loading}`);
     }
     const request0 = parseRequest(loading);
     const popup0 = parsePlaced(loading);
@@ -201,32 +291,65 @@ export async function testit(): Promise<void> {
       throw new Error(`selection-translate-popup: popup did not follow frame\n${movedRaw}`);
     }
 
-    const sameEngine = await popup(client, "switch", "OpenAI Codex");
-    expectState(sameEngine, "Loading");
-    if (parseRequest(sameEngine) !== request0 || !/^persisted=Google$/m.test(sameEngine)) {
-      throw new Error(`selection-translate-popup: same engine restarted or persisted\n${sameEngine}`);
+    const sameProvider = await popup(client, "switch", "OpenAI-compatible");
+    expectState(sameProvider, "Loading");
+    if (parseRequest(sameProvider) !== request0 || !/^persisted=Google Cloud Translation$/m.test(sameProvider)) {
+      throw new Error(`selection-translate-popup: same provider restarted or persisted\n${sameProvider}`);
     }
 
-    const switched = await popup(client, "switch", "Claude Code");
+    const incompleteProvider = await popup(client, "switch", "Google Cloud Translation");
+    expectState(incompleteProvider, "Loading");
+    if (
+      parseRequest(incompleteProvider) !== request0 ||
+      !/^provider=OpenAI-compatible$/m.test(incompleteProvider) ||
+      !/^persisted=Google Cloud Translation$/m.test(incompleteProvider)
+    ) {
+      throw new Error(`selection-translate-popup: incomplete provider was selected\n${incompleteProvider}`);
+    }
+
+    const switched = await popup(client, "switch", "Microsoft Translator");
     expectState(switched, "Loading");
     const request1 = parseRequest(switched);
     if (
       request1 <= request0 ||
-      !/^engine=Claude Code$/m.test(switched) ||
-      !/^provider=Claude Code$/m.test(switched) ||
-      !/^persisted=Claude Code$/m.test(switched)
+      !/^provider=Microsoft Translator$/m.test(switched) ||
+      !/^persisted=Microsoft Translator$/m.test(switched)
     ) {
-      throw new Error(`selection-translate-popup: engine switch did not persist and restart\n${switched}`);
+      throw new Error(`selection-translate-popup: provider switch did not persist and restart\n${switched}`);
     }
     expectState(await popup(client, "stale", "late result"), "Loading");
+
+    const productionResultText = "private production result";
+    const productionResult = await popup(client, "worker-result", productionResultText);
+    expectState(productionResult, "Result");
+    if (
+      /^result=/m.test(productionResult) ||
+      !new RegExp(`^resultLength=${productionResultText.length}$`, "m").test(productionResult)
+    ) {
+      throw new Error(`selection-translate-popup: production result was not redacted\n${productionResult}`);
+    }
+
+    const retried = await popup(client, "retry");
+    expectState(retried, "Loading");
+    if (parseRequest(retried) <= request1) {
+      throw new Error(`selection-translate-popup: Retry did not replace request\n${retried}`);
+    }
+
+    const failed = await popup(client, "error", "redacted failure");
+    expectState(failed, "Error");
+    if (!/^retry=1$/m.test(failed) || !/^loadingTimer=0$/m.test(failed) || /^result=/m.test(failed)) {
+      throw new Error(`selection-translate-popup: provider error missed Retry or exposed result\n${failed}`);
+    }
 
     const result = await popup(client, "result", "translated result");
     expectState(result, "Result");
     if (
       !/^switcher=1$/m.test(result) ||
-      !/^provider=Claude Code$/m.test(result) ||
+      !/^provider=Microsoft Translator$/m.test(result) ||
       !/^target=English$/m.test(result) ||
       !/^result=translated result$/m.test(result) ||
+      !/^resultLength=17$/m.test(result) ||
+      !/^loadingTimer=0$/m.test(result) ||
       !/^copy=1$/m.test(result)
     ) {
       throw new Error(`selection-translate-popup: result controls missing\n${result}`);
@@ -242,10 +365,15 @@ export async function testit(): Promise<void> {
     await pressKey(frame, VK_HOME, 0);
     await pressKey(frame, VK_RIGHT, 100 * SLOW_BUILD_FACTOR);
     expectState(await popup(client, "dump"), "Hidden");
+
+    expectState(await popup(client, "start"), "Loading");
+    expectState(await popup(client, "configure"), "Hidden");
   } finally {
     client.close();
     await killAndWait(proc);
   }
+
+  await testNoInternetPopup(pdf);
 }
 
 if (import.meta.main) {
