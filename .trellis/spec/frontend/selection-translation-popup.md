@@ -176,10 +176,10 @@ void CollectVirtCtrls(ILayout* root, Vec<VirtCtrl*>& out);
   fields are visible. It lists five canonical names: OpenAI-compatible, Google
   Cloud Translation, Google, GoogleAPI, and Microsoft Translator.
   OpenAI-compatible shows Base URL/Model/API Key; Google Cloud shows API Key;
-  Google and GoogleAPI share the Google form but need no key; Microsoft shows
-  Endpoint/Region/API Key. Changing provider retains unsaved values for every
-  provider. Source offers `Auto` plus `TranslationLanguageLabel()` entries;
-  target offers only the shared labels.
+  Google and GoogleAPI show no credential fields and need no key; Microsoft
+  shows Endpoint/Region/API Key. Changing provider retains unsaved values for
+  every provider. Source offers `Auto` plus `TranslationLanguageLabel()`
+  entries; target offers only the shared labels.
 - `ControlBase::SetVisibility()` shows and hides native child controls with
   `ShowWindow(SW_SHOW/SW_HIDE)`. The full Win32 lifecycle lets native Edit
   controls paint their `WM_NCPAINT` non-client frames; provider switching only
