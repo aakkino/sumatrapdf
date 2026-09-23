@@ -1,4 +1,0 @@
-{"candidateTreeHash": "ac61682b6699acb4b6ad13c70464534b1188b66cbeab28420a1a8d827c36def5", "commandId": "build", "result": "pass", "runCount": 1, "schemaVersion": 1, "stage": "paired", "unitId": "ui-docs"}
-{"candidateTreeHash": "ac61682b6699acb4b6ad13c70464534b1188b66cbeab28420a1a8d827c36def5", "commandId": "popup-test", "result": "pass", "runCount": 1, "schemaVersion": 1, "stage": "paired", "unitId": "ui-docs"}
-{"candidateTreeHash": "ac61682b6699acb4b6ad13c70464534b1188b66cbeab28420a1a8d827c36def5", "commandId": "config-test", "result": "fail", "runCount": 1, "schemaVersion": 1, "stage": "paired", "unitId": "ui-docs"}
-{"candidateTreeHash": "ac61682b6699acb4b6ad13c70464534b1188b66cbeab28420a1a8d827c36def5", "commandId": "diff-check", "result": "pass", "runCount": 1, "schemaVersion": 1, "stage": "paired", "unitId": "ui-docs"}

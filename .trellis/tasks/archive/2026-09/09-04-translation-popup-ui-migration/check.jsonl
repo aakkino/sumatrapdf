@@ -1,5 +1,0 @@
-{"file":".trellis/spec/frontend/selection-translation-popup.md","reason":"Verify complete popup behavior and command migration."}
-{"file":".trellis/spec/backend/translation-service.md","reason":"Verify popup code consumes only the checked provider-neutral service contract."}
-{"file":".trellis/spec/backend/logging-guidelines.md","reason":"Verify popup/provider paths leak no sensitive content."}
-{"file":".trellis/tasks/09-04-translation-popup-provider-apis/research/ui-feasibility.md","reason":"Verify visual changes remain native, bounded, and fallback-safe."}
-{"file":".trellis/tasks/09-04-translation-popup-provider-apis/research/api-contracts.md","reason":"Verify UI consumes normalized service results only."}

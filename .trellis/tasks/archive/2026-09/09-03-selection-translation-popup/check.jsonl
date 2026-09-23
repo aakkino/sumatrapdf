@@ -1,9 +1,0 @@
-{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"Audit complete data flow and stale-completion handling."}
-{"file":".trellis/spec/guides/code-reuse-thinking-guide.md","reason":"Check shared geometry and translation logic do not diverge."}
-{"file":".trellis/tasks/09-03-selection-translation-popup/research/selection-architecture.md","reason":"Verify lifecycle and engine/view constraints against evidence."}
-{"file":".trellis/tasks/09-03-selection-translation-popup/research/floating-ui-patterns.md","reason":"Verify Win32 focus, DPI, placement, dismissal, and accessibility behavior."}
-{"file":".trellis/tasks/09-03-selection-translation-popup/research/translation-integration.md","reason":"Verify provider restriction, async safety, privacy, and focused coverage."}
-{"file":".trellis/tasks/09-03-selection-translation-popup/research/external-ui-reference.md","reason":"Verify native implementation follows useful visual intent without importing incompatible web details."}
-{"file":".trellis/tasks/09-03-selection-translation-popup/research/toolchain-source-compatibility.md","reason":"Verify the toolchain compatibility fix is minimal and preserves HTTP behavior."}
-{"file":".trellis/spec/frontend/selection-translation-popup.md","reason":"Verify the persisted popup contract matches the checked implementation and evidence."}
-{"file":".trellis/spec/backend/windows-build.md","reason":"Verify the persisted toolchain contract matches the passing compatibility and debug builds."}

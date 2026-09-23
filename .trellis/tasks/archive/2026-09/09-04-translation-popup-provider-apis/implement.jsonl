@@ -1,6 +1,0 @@
-{"file":".trellis/spec/frontend/selection-translation-popup.md","reason":"Existing popup lifecycle, privacy, focus, placement, and test contract to revise."}
-{"file":".trellis/spec/backend/windows-build.md","reason":"WinHTTP and Windows SDK build constraints for native provider transport."}
-{"file":".trellis/spec/backend/logging-guidelines.md","reason":"Credential and selected-text logging restrictions."}
-{"file":".trellis/tasks/09-04-translation-popup-provider-apis/research/api-contracts.md","reason":"Official provider request, authentication, response, and local HTTP evidence."}
-{"file":".trellis/tasks/09-04-translation-popup-provider-apis/research/ui-history-and-spec.md","reason":"Prior visual decisions and reusable prototype hierarchy."}
-{"file":".trellis/tasks/09-04-translation-popup-provider-apis/research/ui-feasibility.md","reason":"Native Win32 feasibility and deferred advanced UI boundaries."}

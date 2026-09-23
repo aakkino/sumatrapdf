@@ -1,4 +1,0 @@
-{"candidateTreeHash": "01c9114d5e044a751fd7bf958d79e753e31f4b0afb6bb78a17d8e9eaecd011df", "commandId": "frame-test", "result": "pass", "runCount": 1, "schemaVersion": 1, "stage": "paired", "unitId": "native-edit-frame-redraw"}
-{"candidateTreeHash": "01c9114d5e044a751fd7bf958d79e753e31f4b0afb6bb78a17d8e9eaecd011df", "commandId": "diff-check", "result": "pass", "runCount": 1, "schemaVersion": 1, "stage": "paired", "unitId": "native-visibility-spec-sync"}
-{"candidateTreeHash": "ea50bca3d88abb4f64e713d7b65865d3408e813d8d09351a7dcdbd5576f208c6", "commandId": "diff-check", "result": "pass", "runCount": 1, "schemaVersion": 1, "stage": "paired", "unitId": "postfix-evidence-closure"}
-{"candidateTreeHash": "003d183b24bdab6d6396361b6616868aabddbe25a07ffbdb0ec4c8de58724e02", "commandId": "diff-check", "result": "pass", "runCount": 2, "schemaVersion": 1, "stage": "paired", "unitId": "postfix-evidence-closure"}

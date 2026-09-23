@@ -74,7 +74,6 @@ static UINT_PTR gNoDocWhitelist[] = {
     CmdToggleTransparencyGrid,
     CmdTogglePageGrid,
     CmdConfigurePageGrid,
-    CmdConfigureTranslation,
     CmdToggleHoverPreview,
     CmdToggleWindowsPreviewer,
     CmdToggleWindowsSearchFilter,
@@ -103,7 +102,12 @@ UINT_PTR disableIfNoSelection[] = {
     CmdFindNextSel,
     CmdFindPrevSel,
     CmdTranslateSelection,
-    CmdTranslateSelectionQuick,
+    CmdTranslateSelectionWithDeepL,
+    CmdTranslateSelectionWithGoogle,
+    CmdTranslateSelectionWithGrokBuild,
+    CmdTranslateSelectionWithClaudeCode,
+    CmdTranslateSelectionWithOpenAICodex,
+    CmdTranslateSelectionWithAntiGravity,
     CmdSearchSelectionWithWikipedia,
     CmdSearchSelectionWithGoogleScholar,
     CmdSearchSelectionWithBing,
@@ -123,8 +127,8 @@ static UINT_PTR createAnnotFromSelection[] = {
 
 static UINT_PTR removeIfNoInternetPerms[] = {
     CmdCheckUpdate,
-    CmdTranslateSelection,
-    CmdTranslateSelectionQuick,
+    CmdTranslateSelectionWithGoogle,
+    CmdTranslateSelectionWithDeepL,
     CmdSearchSelectionWithGoogle,
     CmdSearchGoogleLens,
     CmdSearchSelectionWithBing,
@@ -147,7 +151,6 @@ static UINT_PTR removeIfNoPrefsPerms[] = {
     CmdOptions,
     CmdSetInverseSearch,
     CmdAdvancedOptions,
-    CmdConfigureTranslation,
     CmdPinSelectedDocument,
     CmdForgetSelectedDocument,
     CmdFavoriteAdd,
@@ -162,7 +165,8 @@ static UINT_PTR removeIfNoPrefsPerms[] = {
 
 static UINT_PTR removeIfNoCopyPerms[] = {
     CmdTranslateSelection,
-    CmdTranslateSelectionQuick,
+    CmdTranslateSelectionWithGoogle,
+    CmdTranslateSelectionWithDeepL,
     CmdSearchSelectionWithGoogle,
     CmdSearchSelectionWithBing,
     CmdSearchSelectionWithWikipedia,
@@ -198,7 +202,6 @@ static UINT_PTR removeIfNoDiskAccessPerm[] = {
     CmdContributeTranslation,
     CmdAdvancedOptions,
     CmdAdvancedSettings,
-    CmdConfigureTranslation,
     CmdFavoriteAdd,
     CmdFavoriteDel,
     CmdFavoriteToggle,
@@ -298,7 +301,6 @@ static i32 gBlacklistCommandsFromPalette[] = {
     CmdOpenAttachment,
     CmdCreateShortcutToFile,
     CmdSetDocumentColorsFollowTheme,
-    CmdTranslateSelectionQuick,
     0,
 };
 
@@ -492,6 +494,19 @@ CommandVisibility GetCommandVisibility(int cmdId, const AppCommandCtx& ctx, Comm
             return CommandVisibility::Hide;
         }
     }
+    if (cmdId == CmdTranslateSelectionWithGrokBuild && !IsGrokBuildInstalled()) {
+        return CommandVisibility::Hide;
+    }
+    if (cmdId == CmdTranslateSelectionWithClaudeCode && !IsClaudeCodeInstalled()) {
+        return CommandVisibility::Hide;
+    }
+    if (cmdId == CmdTranslateSelectionWithOpenAICodex && !IsCodexBuildInstalled()) {
+        return CommandVisibility::Hide;
+    }
+    if (cmdId == CmdTranslateSelectionWithAntiGravity && !IsAntiGravityInstalled()) {
+        return CommandVisibility::Hide;
+    }
+
     if (surface == CommandSurface::Palette) {
         if (CmdIdInI32List(cmdId, gCommandsDebugOnly)) {
             if (!gIsDebugBuild) {

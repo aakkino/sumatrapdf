@@ -720,8 +720,28 @@ static MenuDef menuDefDebug[] = {
 //[ ACCESSKEY_GROUP Context Menu (Selection)
 static MenuDef menuDefSelection[] = {
     {
-        _TRN("&Translate Selection"),
-        CmdTranslateSelection,
+        _TRN("&Translate With Google"),
+        CmdTranslateSelectionWithGoogle,
+    },
+    {
+        _TRN("Translate with &DeepL"),
+        CmdTranslateSelectionWithDeepL,
+    },
+    {
+        _TRN("Translate with &Grok Build"),
+        CmdTranslateSelectionWithGrokBuild,
+    },
+    {
+        _TRN("Translate with &Claude Code"),
+        CmdTranslateSelectionWithClaudeCode,
+    },
+    {
+        _TRN("Translate with OpenAI &Codex"),
+        CmdTranslateSelectionWithOpenAICodex,
+    },
+    {
+        _TRN("Translate with &Antigravity"),
+        CmdTranslateSelectionWithAntiGravity,
     },
     {
         _TRN("Search With &Google"),
@@ -757,8 +777,28 @@ static MenuDef menuDefMainSelection[] = {
         CmdCopySelection,
     },
     {
-        _TRN("&Translate Selection"),
-        CmdTranslateSelection,
+        _TRN("&Translate With Google"),
+        CmdTranslateSelectionWithGoogle,
+    },
+    {
+        _TRN("Translate with &DeepL"),
+        CmdTranslateSelectionWithDeepL,
+    },
+    {
+        _TRN("Translate with &Grok Build"),
+        CmdTranslateSelectionWithGrokBuild,
+    },
+    {
+        _TRN("Translate with &Claude Code"),
+        CmdTranslateSelectionWithClaudeCode,
+    },
+    {
+        _TRN("Translate with OpenAI &Codex"),
+        CmdTranslateSelectionWithOpenAICodex,
+    },
+    {
+        _TRN("Translate with &Antigravity"),
+        CmdTranslateSelectionWithAntiGravity,
     },
     {
         _TRN("&Search With Google"),
@@ -1302,7 +1342,12 @@ static int disableIfDirectoryOrBrokenPDF[] = {
 
 // translate / search selection commands need selected text to operate on
 static UINT_PTR selectionTextCmds[] = {
-    CmdTranslateSelection,
+    CmdTranslateSelectionWithGoogle,
+    CmdTranslateSelectionWithDeepL,
+    CmdTranslateSelectionWithGrokBuild,
+    CmdTranslateSelectionWithClaudeCode,
+    CmdTranslateSelectionWithOpenAICodex,
+    CmdTranslateSelectionWithAntiGravity,
     CmdSearchSelectionWithGoogle,
     CmdSearchSelectionWithBing,
     CmdSearchSelectionWithWikipedia,
@@ -1562,7 +1607,7 @@ HMENU BuildMenuFromDef(MenuDef* menuDef, HMENU menu, BuildMenuCtx* ctx) {
             addExternalViewersNext = true;
         }
 
-        if (menuDef == menuDefMainSelection && cmdId == CmdTranslateSelection) {
+        if (menuDef == menuDefMainSelection && cmdId == CmdTranslateSelectionWithGoogle) {
             AppendSelectionHandlersToMenu(menu, true);
         }
 
