@@ -1,3 +1,0 @@
-{"file":".trellis/spec/backend/translation-service.md","reason":"Verify provider request/parser ownership, bounds, timeout and redaction."}
-{"file":".trellis/spec/frontend/selection-translation-popup.md","reason":"Verify provider menu status, popup lifecycle and stale completion behavior."}
-{"file":".trellis/tasks/09-22-google-translate-search-feasibility/design.md","reason":"Verify the implementation stays within the service/popup layer boundary."}

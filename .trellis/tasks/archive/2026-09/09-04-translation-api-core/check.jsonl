@@ -1,3 +1,0 @@
-{"file":".trellis/spec/backend/windows-build.md","reason":"Verify HTTP changes build under supported Windows toolchains."}
-{"file":".trellis/spec/backend/logging-guidelines.md","reason":"Audit all provider error and logging paths for payload leakage."}
-{"file":".trellis/tasks/09-04-translation-popup-provider-apis/research/api-contracts.md","reason":"Verify each adapter and test fixture against provider contracts."}

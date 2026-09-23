@@ -1,4 +1,0 @@
-{"candidateTreeHash": "ad18b97dc2cfab5bb446dc16604b81b634b57f25eaf27671da06cc450989eaba", "commandId": "api-test", "result": "pass", "runCount": 1, "schemaVersion": 1, "stage": "paired", "unitId": "google-providers"}
-{"candidateTreeHash": "ad18b97dc2cfab5bb446dc16604b81b634b57f25eaf27671da06cc450989eaba", "commandId": "build", "result": "pass", "runCount": 1, "schemaVersion": 1, "stage": "paired", "unitId": "google-providers"}
-{"candidateTreeHash": "ad18b97dc2cfab5bb446dc16604b81b634b57f25eaf27671da06cc450989eaba", "commandId": "unit-tests", "result": "fail", "runCount": 1, "schemaVersion": 1, "stage": "paired", "unitId": "google-providers"}
-{"candidateTreeHash": "ad18b97dc2cfab5bb446dc16604b81b634b57f25eaf27671da06cc450989eaba", "commandId": "diff-check", "result": "pass", "runCount": 1, "schemaVersion": 1, "stage": "paired", "unitId": "google-providers"}

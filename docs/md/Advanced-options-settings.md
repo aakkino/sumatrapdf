@@ -704,41 +704,9 @@ TranslateToLang =
 ; (introduced in version 3.7)
 TranslateFromLang = 
 
-; legacy remembered engine for Translate Selection; ignored by HTTP translation
-; providers (introduced in version 3.7)
+; remembered engine for Translate Selection: Google, DeepL, Grok Build, Claude
+; Code, OpenAI Codex or Antigravity (introduced in version 3.7)
 TranslateEngine = 
-
-; provider for selection translation: OpenAI-compatible, Google Cloud
-; Translation or Microsoft Translator; empty disables requests (introduced in
-; version 3.7)
-TranslationProvider =
-
-; base URL for the OpenAI-compatible translation API; /chat/completions is added
-; automatically (introduced in version 3.7)
-TranslationOpenAIBaseUrl =
-
-; model for the OpenAI-compatible translation API (introduced in version 3.7)
-TranslationOpenAIModel =
-
-; API key for the OpenAI-compatible translation API; stored in plain text in
-; this settings file (introduced in version 3.7)
-TranslationOpenAIKey =
-
-; API key for Google Cloud Translation; stored in plain text in this settings
-; file (introduced in version 3.7)
-TranslationGoogleKey =
-
-; endpoint for Microsoft Translator, for example
-; https://api.cognitive.microsofttranslator.com (introduced in version 3.7)
-TranslationMicrosoftEndpoint =
-
-; API key for Microsoft Translator; stored in plain text in this settings file
-; (introduced in version 3.7)
-TranslationMicrosoftKey =
-
-; optional region for a regional or multi-service Microsoft Translator resource
-; (introduced in version 3.7)
-TranslationMicrosoftRegion =
 
 ; default values for annotations in PDF documents (introduced in version 3.3)
 Annotations [

@@ -21,23 +21,7 @@ bool HttpPost(Str server, int port, Str url, str::Builder* headers, str::Builder
 bool HttpGet(Str url, HttpRsp* rspOut);
 bool HttpGetToFile(Str url, Str destFilePath, const Func1<HttpProgress*>& cbProgress, i64 maxSize = -1);
 
-constexpr DWORD kHttpPostDefaultTimeoutMs = 15 * 1000;
-constexpr int kHttpPostDefaultMaxResponseBytes = 1024 * 1024;
-
-struct HttpGetOptions {
-    DWORD timeoutMs = kHttpPostDefaultTimeoutMs;
-    int maxResponseBytes = kHttpPostDefaultMaxResponseBytes;
-};
-
-bool HttpGetUrl(Str url, HttpRsp* rspOut, const HttpGetOptions& options = {});
-
-struct HttpPostOptions {
-    DWORD timeoutMs = kHttpPostDefaultTimeoutMs;
-    int maxResponseBytes = kHttpPostDefaultMaxResponseBytes;
-};
-
-bool HttpPostUrl(Str url, Str contentType, Str extraHeaders, Str body, HttpRsp* rspOut,
-                 const HttpPostOptions& options = {});
+bool HttpPostUrl(Str url, Str contentType, Str extraHeaders, Str body, HttpRsp* rspOut);
 TempStr HttpNormalizeHeadersTemp(Str headers);
 
 // How much URL-encoded text we're willing to put in a URL. ShellExecuteW hands

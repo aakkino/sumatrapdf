@@ -1,9 +1,0 @@
-{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"Map selection, UI, worker, and completion boundaries."}
-{"file":".trellis/spec/guides/code-reuse-thinking-guide.md","reason":"Reuse existing toolbar geometry, dialog controls, and translation runner."}
-{"file":".trellis/tasks/09-03-selection-translation-popup/research/selection-architecture.md","reason":"Source-indexed selection lifecycle, anchors, and view constraints."}
-{"file":".trellis/tasks/09-03-selection-translation-popup/research/floating-ui-patterns.md","reason":"Existing popup, focus, DPI, placement, and accessibility patterns."}
-{"file":".trellis/tasks/09-03-selection-translation-popup/research/translation-integration.md","reason":"AI CLI, async, settings, privacy, and testability evidence."}
-{"file":".trellis/tasks/09-03-selection-translation-popup/research/external-ui-reference.md","reason":"Approved visual hierarchy and explicit exclusions from the external HTML prototype."}
-{"file":".trellis/tasks/09-03-selection-translation-popup/research/toolchain-source-compatibility.md","reason":"Source-indexed minimal fixes for the MSVC intrinsic and WinINet/WinHTTP SDK conflicts."}
-{"file":".trellis/spec/frontend/selection-translation-popup.md","reason":"Executable quick-translation command, popup lifecycle, privacy, and test contracts."}
-{"file":".trellis/spec/backend/windows-build.md","reason":"Executable MSVC, WinHTTP, SDK, and Windows build contracts."}

@@ -13,9 +13,6 @@
 #if COMPILER_MINGW
 #include <cpuid.h>
 #endif
-#if COMPILER_MSVC
-#include <intrin.h>
-#endif
 #include <float.h> // for _clearfp / _controlfp_s in MaskFpExceptions
 #include <mlang.h>
 #include "base/Win.h"

@@ -12,7 +12,6 @@ import { killAndWait, launchControlled, sendCommandSync } from "./win-automation
 import {
   getWindowRect,
   postMessage,
-  setProcessDpiAware,
   setWindowPos,
   sleep,
   SWP_NOACTIVATE,
@@ -101,8 +100,6 @@ async function waitForToolbarVisible(client: ControlClient): Promise<string> {
 }
 
 export async function testit(): Promise<void> {
-  setProcessDpiAware();
-
   const pdf = tmpPath("selection-toolbar-move.pdf");
   writeFileSync(pdf, makeTextPdf());
   const dir = writeAppData(tmpPath("selection-toolbar-move-appdata"));

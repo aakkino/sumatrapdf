@@ -28,7 +28,6 @@
 #include "MainWindow.h"
 #include "WindowTab.h"
 #include "SelectionToolbar.h"
-#include "SelectionTranslate.h"
 #include "SelectTextKeyboard.h"
 #include "Commands.h"
 #include "Toolbar.h"
@@ -123,35 +122,6 @@ void DeleteOldSelectionInfo(MainWindow* win, bool alsoTextSel) {
     if (alsoTextSel && tab->AsFixed()) {
         tab->AsFixed()->textSelection->Reset();
     }
-}
-
-// Union only visible selection fragments so anchored popups follow scrolling.
-bool GetVisibleSelectionBounds(MainWindow* win, Rect& out) {
-    DisplayModel* dm = win ? win->AsFixed() : nullptr;
-    WindowTab* tab = win ? win->CurrentTab() : nullptr;
-    if (!dm || !tab || !tab->selectionOnPage) {
-        return false;
-    }
-
-    Rect bounds;
-    bool first = true;
-    for (SelectionOnPage& sel : *tab->selectionOnPage) {
-        Rect r = sel.GetRect(dm).Intersect(win->canvasRc);
-        if (r.IsEmpty()) {
-            continue;
-        }
-        if (first) {
-            bounds = r;
-            first = false;
-        } else {
-            bounds = bounds.Union(r);
-        }
-    }
-    if (first) {
-        return false;
-    }
-    out = bounds;
-    return true;
 }
 
 // Rectangular (Ctrl+drag) selection: move/resize after it exists.
@@ -1031,7 +1001,6 @@ void OnSelectionStop(MainWindow* win, int x, int y, bool aborted) {
         win->selectionDragEdge = SelectionDragEdge::None;
     }
     win->selectingByWord = false;
-    OnTranslateSelectionChanged(win);
     // refresh selection-dependent toolbar buttons once, when the selection is
     // finalized, rather than on every repaint while dragging (UpdateTextSelection
     // runs from PaintSelection on each frame, which flickered the toolbar)

@@ -453,12 +453,6 @@
     <ClInclude Include="..\src\Toolbar.h">
       <Filter>src</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\TranslationConfig.h">
-      <Filter>src</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\TranslationService.h">
-      <Filter>src</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\Translations.h">
       <Filter>src</Filter>
     </ClInclude>
@@ -1124,13 +1118,7 @@
     <ClCompile Include="..\src\Toolbar_win.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\TranslationConfig.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\TranslationLangs.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\TranslationService.cpp">
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="..\src\Translations.cpp">

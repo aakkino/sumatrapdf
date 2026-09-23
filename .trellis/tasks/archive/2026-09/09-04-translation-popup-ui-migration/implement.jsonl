@@ -1,5 +1,0 @@
-{"file":".trellis/spec/frontend/selection-translation-popup.md","reason":"Popup lifecycle, privacy, placement, focus, commands, and focused tests."}
-{"file":".trellis/spec/backend/translation-service.md","reason":"Checked provider-neutral API, worker-only execution, canonical labels, and redacted result contract."}
-{"file":".trellis/tasks/09-04-translation-popup-provider-apis/research/ui-history-and-spec.md","reason":"Reusable prototype hierarchy and superseded AI-CLI elements."}
-{"file":".trellis/tasks/09-04-translation-popup-provider-apis/research/ui-feasibility.md","reason":"Approved native polish and advanced UI deferrals."}
-{"file":".trellis/tasks/09-04-translation-popup-provider-apis/research/api-contracts.md","reason":"Normalized provider boundary consumed by the popup."}

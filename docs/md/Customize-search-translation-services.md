@@ -2,24 +2,26 @@
 
 **Available in version 3.4 or later.**
 
-You can translate selected text with a configured OpenAI-compatible, Google Cloud Translation, or Microsoft Translator API:
-
-- open the command palette (`Ctrl + K`)
-- run `Configure Translation Providers`
-- choose a provider, configure its credentials and languages, and save
-- select text using the mouse
-- use `Translate Selection` from the floating toolbar, Selection context menu, or command palette
-
-The translation result opens in a popup beside the selection.
-
-Provider API keys are stored in plain text in the settings file. Local users,
-backups, and synchronization tools can read them.
-
-You can also send selected text to search services:
+You can send selected text to the Google or Bing search engine, or to the Google or DeepL translation service:
 
 - select text using the mouse
 - right-click to open the context menu
-- use the `Selection` submenu and select the search service
+
+![Context Menu Selection](img/context-menu-selection.png)
+
+- use the `Selection` submenu and select the web service to use for translation or search:
+
+![Context Menu Translate](img/context-menu-translate.png)
+
+You can also use the command palette (`Ctrl + K`):
+
+- select text
+- press `Ctrl + K` to open the command palette
+- type, for example, `deepl` to find the `Translate with DeepL` command
+
+![Using Command Palette](img/cmd-palette-translate.png)
+
+- press `Enter` (or double-click with the mouse) to execute the action
 
 ## Adding more services
 
