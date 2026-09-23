@@ -1073,7 +1073,9 @@ static TempStr TranslationApiTestResultTemp(Str endpoint, Str sourceLanguage, St
     data.request.targetLanguage = targetLanguage;
     data.request.text = text;
     data.options.timeoutMs = (DWORD)timeoutMs;
-    if (data.settings.provider == TranslationProviderId::GoogleCloud) {
+    if (data.settings.provider == TranslationProviderId::GoogleCloud ||
+        data.settings.provider == TranslationProviderId::Google ||
+        data.settings.provider == TranslationProviderId::GoogleAPI) {
         TranslationSetTestEndpoint(data.settings.provider, endpoint);
     }
 

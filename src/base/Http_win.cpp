@@ -170,6 +170,130 @@ Error:
     goto Exit;
 }
 
+// Bounded GET for worker-owned API calls. Unlike HttpGet, it does not log the
+// URL because query strings can carry document text or authentication tokens.
+bool HttpGetUrl(Str url, HttpRsp* rspOut, const HttpGetOptions& options) {
+    HINTERNET hSession = nullptr;
+    HINTERNET hConnect = nullptr;
+    HINTERNET hRequest = nullptr;
+    DWORD statusCode = 0;
+    DWORD statusSize = sizeof(statusCode);
+    DWORD responseTimeout = 0;
+    rspOut->error = ERROR_SUCCESS;
+    rspOut->httpStatusCode = (DWORD)-1;
+    rspOut->data.Reset();
+    if (options.timeoutMs == 0 || options.maxResponseBytes <= 0) {
+        rspOut->error = ERROR_INVALID_PARAMETER;
+        return false;
+    }
+
+    URL_COMPONENTS uc{};
+    uc.dwStructSize = sizeof(uc);
+    uc.dwSchemeLength = (DWORD)-1;
+    uc.dwHostNameLength = (DWORD)-1;
+    uc.dwUrlPathLength = (DWORD)-1;
+    uc.dwExtraInfoLength = (DWORD)-1;
+    WCHAR* urlW = CWStrTemp(url);
+    if (!InternetCrackUrlW(urlW, 0, 0, &uc)) {
+        rspOut->error = GetLastError();
+        return false;
+    }
+
+    TempWStr host = str::DupTemp(WStr(uc.lpszHostName, (int)uc.dwHostNameLength));
+    TempWStr pathAndQuery = str::DupTemp(WStr(uc.lpszUrlPath, (int)(uc.dwUrlPathLength + uc.dwExtraInfoLength)));
+    DWORD flags = 0;
+    if (uc.nScheme == INTERNET_SCHEME_HTTPS) {
+        flags |= WINHTTP_FLAG_SECURE;
+    }
+
+    hSession =
+        WinHttpOpen(kUserAgent, WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY, WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, 0);
+    if (!hSession) {
+        rspOut->error = GetLastError();
+        goto Exit;
+    }
+    responseTimeout = options.timeoutMs;
+    if (!WinHttpSetTimeouts(hSession, (int)options.timeoutMs, (int)options.timeoutMs, (int)options.timeoutMs,
+                            (int)options.timeoutMs) ||
+        !WinHttpSetOption(hSession, WINHTTP_OPTION_RECEIVE_RESPONSE_TIMEOUT, &responseTimeout,
+                          sizeof(responseTimeout))) {
+        rspOut->error = GetLastError();
+        goto Exit;
+    }
+    hConnect = WinHttpConnect(hSession, host.s, (INTERNET_PORT)uc.nPort, 0);
+    if (!hConnect) {
+        rspOut->error = GetLastError();
+        goto Exit;
+    }
+    hRequest = WinHttpOpenRequest(hConnect, L"GET", pathAndQuery.s, nullptr, WINHTTP_NO_REFERER,
+                                  WINHTTP_DEFAULT_ACCEPT_TYPES, flags);
+    if (!hRequest) {
+        rspOut->error = GetLastError();
+        goto Exit;
+    }
+    if (!WinHttpSetTimeouts(hRequest, (int)options.timeoutMs, (int)options.timeoutMs, (int)options.timeoutMs,
+                            (int)options.timeoutMs) ||
+        !WinHttpSetOption(hRequest, WINHTTP_OPTION_RECEIVE_TIMEOUT, &responseTimeout, sizeof(responseTimeout)) ||
+        !WinHttpSetOption(hRequest, WINHTTP_OPTION_RECEIVE_RESPONSE_TIMEOUT, &responseTimeout,
+                          sizeof(responseTimeout))) {
+        rspOut->error = GetLastError();
+        goto Exit;
+    }
+    if (!WinHttpSendRequest(hRequest, nullptr, 0, nullptr, 0, 0, 0) || !WinHttpReceiveResponse(hRequest, nullptr)) {
+        rspOut->error = GetLastError();
+        goto Exit;
+    }
+
+    if (!WinHttpQueryHeaders(hRequest, WINHTTP_QUERY_STATUS_CODE | WINHTTP_QUERY_FLAG_NUMBER, nullptr, &statusCode,
+                             &statusSize, WINHTTP_NO_HEADER_INDEX)) {
+        rspOut->error = GetLastError();
+        goto Exit;
+    }
+    rspOut->httpStatusCode = statusCode;
+
+    for (;;) {
+        DWORD available = 0;
+        if (!WinHttpQueryDataAvailable(hRequest, &available)) {
+            rspOut->error = GetLastError();
+            goto Exit;
+        }
+        if (available == 0) {
+            break;
+        }
+        int remaining = options.maxResponseBytes - len(rspOut->data);
+        if (remaining < 0 || available > (DWORD)remaining) {
+            rspOut->error = ERROR_FILE_TOO_LARGE;
+            goto Exit;
+        }
+        char buf[4096];
+        DWORD toRead = std::min<DWORD>(available, sizeof(buf));
+        DWORD read = 0;
+        if (!WinHttpReadData(hRequest, buf, toRead, &read)) {
+            rspOut->error = GetLastError();
+            goto Exit;
+        }
+        if (read == 0) {
+            break;
+        }
+        if (!rspOut->data.Append(Str(buf, (int)read))) {
+            rspOut->error = ERROR_NOT_ENOUGH_MEMORY;
+            goto Exit;
+        }
+    }
+
+Exit:
+    if (hRequest) {
+        WinHttpCloseHandle(hRequest);
+    }
+    if (hConnect) {
+        WinHttpCloseHandle(hConnect);
+    }
+    if (hSession) {
+        WinHttpCloseHandle(hSession);
+    }
+    return rspOut->error == ERROR_SUCCESS && rspOut->httpStatusCode >= 200 && rspOut->httpStatusCode < 300;
+}
+
 constexpr const int kBufSize = 256 * 1024;
 
 // Download content of a url to a file
