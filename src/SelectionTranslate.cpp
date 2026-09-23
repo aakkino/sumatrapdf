@@ -329,6 +329,15 @@ static void MaybeSaveTranslatePrefs(TranslateEngine engine, Str srcLang, Str dst
     }
 }
 
+static void MaybeSaveQuickTranslateEngine(TranslateEngine engine) {
+    if (!gSettings) {
+        return;
+    }
+    if (UpdateTranslatePref(&gSettings->translateEngine, EngineDisplayName(engine))) {
+        ScheduleSaveSettings();
+    }
+}
+
 static bool IsSrcLangAutoTemp(Str srcLang) {
     if (str::IsEmptyOrWhiteSpace(srcLang)) {
         return false;
@@ -1419,6 +1428,11 @@ enum class PopupResult {
     Success,
 };
 
+enum class PopupStart {
+    Worker,
+    NoWorker,
+};
+
 struct SelectionTranslatePopupWnd : WindowBase {
     MainWindow* win = nullptr;
     WindowTab* tab = nullptr;
@@ -1435,7 +1449,8 @@ struct SelectionTranslatePopupWnd : WindowBase {
     Str message;
     Str sourceLang;
     Str destinationLang;
-    VirtText* header = nullptr;
+    VirtButton* btnEngine = nullptr;
+    VirtText* target = nullptr;
     VirtText* status = nullptr;
     Edit* result = nullptr;
     VirtButton* btnCopy = nullptr;
@@ -1449,9 +1464,11 @@ struct SelectionTranslatePopupWnd : WindowBase {
     void Relayout();
     void Place(PopupShow show);
     void SetState(SelectionTranslatePopupState state, Str text, PopupAction action);
-    void Start(Str text);
+    void Start(Str text, PopupStart start);
+    void SwitchEngine(TranslateEngine engine, PopupStart start);
     void OnDone(PopupResult result, Str text);
     void OnCopy(VirtMouseEvent*);
+    void OnEngine(VirtMouseEvent*);
     void OnConfigure(VirtMouseEvent*);
     void OnClose(VirtMouseEvent*);
     void OnDpiChanged(WindowBase::DpiChangedEvent* ev);
@@ -1483,6 +1500,8 @@ struct SelectionTranslatePopupDoneData {
 
 static Vec<SelectionTranslatePopupWnd*> gSelectionTranslatePopups;
 static u64 gNextTranslatePopupRequestId = 0;
+static constexpr UINT kTranslateEngineMenuFirst = 1;
+static constexpr UINT kTranslateEngineMenuConfigure = 100;
 
 static const char* TranslatePopupStateName(SelectionTranslatePopupState state) {
     switch (state) {
@@ -1504,6 +1523,27 @@ static SelectionTranslatePopupWnd* FindSelectionTranslatePopup(MainWindow* win) 
         }
     }
     return nullptr;
+}
+
+static Str TranslatePopupEngineName(TranslateEngine engine) {
+    if (EngineIsAI(engine)) {
+        return EngineDisplayName(engine);
+    }
+    return _TRA("Choose Engine");
+}
+
+// A TrackPopupMenu dismissal leaves its button click in the message queue.
+static void EatTranslatePopupDismissClick(Rect screenRect) {
+    POINT pt;
+    GetCursorPos(&pt);
+    if (!screenRect.Contains(pt.x, pt.y)) {
+        return;
+    }
+    MSG msg{};
+    while (PeekMessageW(&msg, nullptr, WM_LBUTTONDOWN, WM_LBUTTONDOWN, PM_REMOVE)) {
+    }
+    while (PeekMessageW(&msg, nullptr, WM_LBUTTONUP, WM_LBUTTONUP, PM_REMOVE)) {
+    }
 }
 
 static bool SameSelection(const Vec<SelectionOnPage>& saved, const Vec<SelectionOnPage>& current) {
@@ -1623,9 +1663,11 @@ void SelectionTranslatePopupWnd::SetState(SelectionTranslatePopupState newState,
     canConfigure = action == PopupAction::Configure;
     str::ReplaceWithCopy(&message, text);
 
-    Str provider = EngineIsAI(engine) ? EngineDisplayName(engine) : Str(_TRA("Translation"));
-    if (header) {
-        header->SetText(fmt("%s -> %s", provider, destinationLang));
+    if (btnEngine) {
+        btnEngine->SetText(TranslatePopupEngineName(engine));
+    }
+    if (target) {
+        target->SetText(fmt("-> %s", destinationLang));
     }
     if (status) {
         if (state == SelectionTranslatePopupState::Loading) {
@@ -1661,6 +1703,55 @@ void SelectionTranslatePopupWnd::OnCopy(VirtMouseEvent*) {
     }
 }
 
+void SelectionTranslatePopupWnd::OnEngine(VirtMouseEvent*) {
+    if (!btnEngine || !hwnd) {
+        return;
+    }
+
+    HMENU menu = CreatePopupMenu();
+    if (!menu) {
+        return;
+    }
+
+    Vec<TranslateEngine> engines;
+    for (TranslateEngine candidate : gAllEngines) {
+        if (!EngineIsAI(candidate) || !IsEngineAvailable(candidate)) {
+            continue;
+        }
+        VecAppend(engines, candidate);
+    }
+    for (int i = 0; i < len(engines); i++) {
+        UINT flags = MF_STRING;
+        if (engines[i] == engine) {
+            flags |= MF_CHECKED;
+        }
+        AppendMenuW(menu, flags, kTranslateEngineMenuFirst + (UINT)i, CWStrTemp(EngineDisplayName(engines[i])));
+    }
+    AppendMenuW(menu, MF_SEPARATOR, 0, nullptr);
+    AppendMenuW(menu, MF_STRING, kTranslateEngineMenuConfigure, CWStrTemp(_TRA("Configure...")));
+
+    Rect button = btnEngine->BoundsInWindow();
+    Point origin = HwndClientToScreen(hwnd, Point());
+    Rect buttonScreen{origin.x + button.x, origin.y + button.y, button.dx, button.dy};
+    Point screen{buttonScreen.x, buttonScreen.y + buttonScreen.dy};
+    MainWindow* popupWin = win;
+    UINT cmd = TrackPopupMenu(menu, TPM_RETURNCMD | TPM_NONOTIFY | TPM_LEFTALIGN, screen.x, screen.y, 0, hwnd, nullptr);
+    DestroyMenu(menu);
+    EatTranslatePopupDismissClick(buttonScreen);
+
+    SelectionTranslatePopupWnd* popup = FindSelectionTranslatePopup(popupWin);
+    if (popup != this) {
+        return;
+    }
+    if (cmd >= kTranslateEngineMenuFirst && cmd < kTranslateEngineMenuFirst + (UINT)len(engines)) {
+        popup->SwitchEngine(engines[cmd - kTranslateEngineMenuFirst], PopupStart::Worker);
+        return;
+    }
+    if (cmd == kTranslateEngineMenuConfigure) {
+        popup->OnConfigure(nullptr);
+    }
+}
+
 void SelectionTranslatePopupWnd::OnConfigure(VirtMouseEvent*) {
     WindowTab* selectedTab = tab;
     CloseSelectionTranslatePopup(this, PopupToolbar::LeaveHidden);
@@ -1674,7 +1765,10 @@ void SelectionTranslatePopupWnd::OnClose(VirtMouseEvent*) {
 void SelectionTranslatePopupWnd::OnDpiChanged(WindowBase::DpiChangedEvent* ev) {
     SetFont(GetAppFont());
     HwndSetFontForWindowAndItsChildren(hwnd, GetHFont());
-    VirtText* virts[] = {header, status, btnCopy, btnConfigure, btnClose};
+    if (btnEngine) {
+        btnEngine->textPadding = DpiScaledInsets(2, 6);
+    }
+    VirtText* virts[] = {btnEngine, target, status, btnCopy, btnConfigure, btnClose};
     for (VirtText* virt : virts) {
         if (virt) {
             virt->font = font;
@@ -1723,7 +1817,16 @@ bool SelectionTranslatePopupWnd::Create(WindowTab* selectedTab, TranslateEngine 
     vbox->alignMain = MainAxisAlign::MainStart;
     vbox->alignCross = CrossAxisAlign::Stretch;
 
-    header = NewVirtText({.font = font, .isRtl = IsUIRtl(), .ellipsis = true});
+    auto* header = new HBox();
+    header->alignCross = CrossAxisAlign::CrossCenter;
+    header->gap = DpiScale(4);
+    btnEngine = NewThemedButton(hwnd, TranslatePopupEngineName(engine), font, false);
+    btnEngine->textPadding = DpiScaledInsets(2, 6);
+    btnEngine->onClick =
+        MkMethod1<SelectionTranslatePopupWnd, VirtMouseEvent*, &SelectionTranslatePopupWnd::OnEngine>(this);
+    header->AddChild(btnEngine);
+    target = NewVirtText({.s = fmt("-> %s", destinationLang), .font = font, .isRtl = IsUIRtl(), .ellipsis = true});
+    header->AddChild(target);
     vbox->AddChild(header);
 
     status = NewVirtText({.font = font, .isRtl = IsUIRtl(), .padding = DpiScaledInsets(8, 0, 0, 0)});
@@ -1797,9 +1900,12 @@ static void SelectionTranslatePopupThread(SelectionTranslatePopupTaskData* data)
     uitask::Post(MkFunc0(OnSelectionTranslatePopupDone, done), "SelectionTranslatePopupDone");
 }
 
-void SelectionTranslatePopupWnd::Start(Str text) {
+void SelectionTranslatePopupWnd::Start(Str text, PopupStart start) {
     requestId = ++gNextTranslatePopupRequestId;
     SetState(SelectionTranslatePopupState::Loading, {}, PopupAction::None);
+    if (start == PopupStart::NoWorker) {
+        return;
+    }
 
     auto* task = new SelectionTranslatePopupTaskData();
     task->hwnd = hwnd;
@@ -1809,6 +1915,31 @@ void SelectionTranslatePopupWnd::Start(Str text) {
     task->destinationLang = str::Dup(destinationLang);
     task->text = str::Dup(text);
     RunAsync(MkFunc0(SelectionTranslatePopupThread, task), StrL("SelectionTranslatePopup"));
+}
+
+void SelectionTranslatePopupWnd::SwitchEngine(TranslateEngine newEngine, PopupStart start) {
+    if (!EngineIsAI(newEngine) || (start == PopupStart::Worker && !IsEngineAvailable(newEngine))) {
+        return;
+    }
+    if (!IsCurrentTranslatePopup(this) || !HasPermission(Perm::CopySelection)) {
+        CloseSelectionTranslatePopup(this, PopupToolbar::LeaveHidden);
+        return;
+    }
+
+    bool isTextOnly = false;
+    TempStr text = GetSelectedTextTemp(tab, StrL("\n"), isTextOnly);
+    if (str::IsEmptyOrWhiteSpace(text)) {
+        CloseSelectionTranslatePopup(this, PopupToolbar::LeaveHidden);
+        return;
+    }
+    if (newEngine == engine) {
+        return;
+    }
+
+    engine = newEngine;
+    backend = BackendFromEngine(engine);
+    MaybeSaveQuickTranslateEngine(engine);
+    Start(text, start);
 }
 
 void SelectionTranslatePopupWnd::OnDone(PopupResult result, Str text) {
@@ -1858,7 +1989,7 @@ void ShowSelectionTranslatePopup(WindowTab* tab) {
         return;
     }
     popup->backend = BackendFromEngine(engine);
-    popup->Start(text);
+    popup->Start(text, PopupStart::Worker);
 }
 
 bool HasSelectionTranslatePopup(MainWindow* win) {
@@ -1920,9 +2051,11 @@ TempStr SelectionTranslatePopupTestTemp(Str action, Str value, int* exitCode) {
                        Str(TranslatePopupStateName(popup->state)), HwndIsVisible(popup->hwnd) ? 1 : 0,
                        popup->canConfigure ? 1 : 0, popup->state == SelectionTranslatePopupState::Result ? 1 : 0,
                        rect.x, rect.y, rect.dx, rect.dy));
-        if (popup->header) {
-            out.Append(fmt("header=%s\n", popup->header->s));
-        }
+        Str engineName = popup->engine == TranslateEngine::Default ? StrL("Default") : EngineDisplayName(popup->engine);
+        Str persisted = gSettings ? gSettings->translateEngine : Str{};
+        out.Append(fmt("switcher=%d\nengine=%s\nprovider=%s\ntarget=%s\npersisted=%s\nrequest=%llu\n",
+                       popup->btnEngine ? 1 : 0, engineName, TranslatePopupEngineName(popup->engine),
+                       popup->destinationLang, persisted, popup->requestId));
         if (popup->state == SelectionTranslatePopupState::Result) {
             out.Append(fmt("result=%s\n", popup->message));
         }
@@ -1948,8 +2081,8 @@ TempStr SelectionTranslatePopupTestTemp(Str action, Str value, int* exitCode) {
         }
         VecAppend(gSelectionTranslatePopups, testPopup);
         HideSelectionToolbar(win);
-        testPopup->requestId = ++gNextTranslatePopupRequestId;
-        testPopup->SetState(SelectionTranslatePopupState::Loading, {}, PopupAction::None);
+        testPopup->backend = BackendFromEngine(testPopup->engine);
+        testPopup->Start({}, PopupStart::NoWorker);
         return SelectionTranslatePopupTestTemp(StrL("dump"), {}, exitCode);
     }
     if (!popup) {
@@ -1964,6 +2097,12 @@ TempStr SelectionTranslatePopupTestTemp(Str action, Str value, int* exitCode) {
         done->result = PopupResult::Success;
         done->text = str::Dup(value);
         OnSelectionTranslatePopupDone(done);
+    } else if (str::EqI(action, StrL("switch"))) {
+        TranslateEngine engine = EngineFromName(value);
+        if (!EngineIsAI(engine)) {
+            return finish(StrL("ERROR invalid-engine"), 1);
+        }
+        popup->SwitchEngine(engine, PopupStart::NoWorker);
     } else {
         return finish(StrL("ERROR unknown-action"), 1);
     }
