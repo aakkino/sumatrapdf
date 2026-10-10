@@ -81,6 +81,8 @@ struct TranslationConfigWnd : WindowBase {
     Table* languagesTable = nullptr;
     ILayout* openAIGroup = nullptr;
     ILayout* googleGroup = nullptr;
+    VirtText* googleHeading = nullptr;
+    VirtText* googleKeyLabel = nullptr;
     ILayout* microsoftGroup = nullptr;
     HBox* providerRow = nullptr;
     HBox* buttons = nullptr;
@@ -257,7 +259,8 @@ ILayout* TranslationConfigWnd::NewProviderGroup(TranslationProviderId provider) 
     } else if (provider == TranslationProviderId::GoogleCloud) {
         googleTable = table;
         editGoogleKey = NewEdit({}, ConfigEditKind::Key);
-        AddConfigRow(table, 0, NewRowLabel(_TRA("API Key:")), editGoogleKey, isRtl);
+        googleKeyLabel = NewRowLabel(_TRA("API Key:"));
+        AddConfigRow(table, 0, googleKeyLabel, editGoogleKey, isRtl);
     } else {
         microsoftTable = table;
         editMicrosoftEndpoint = NewEdit({});
@@ -270,7 +273,11 @@ ILayout* TranslationConfigWnd::NewProviderGroup(TranslationProviderId provider) 
 
     auto* box = new VBox();
     box->alignCross = CrossAxisAlign::Stretch;
-    box->AddChild(NewHeading(info[ProviderIndex(provider)].name));
+    auto* heading = NewHeading(info[ProviderIndex(provider)].name);
+    if (provider == TranslationProviderId::GoogleCloud) {
+        googleHeading = heading;
+    }
+    box->AddChild(heading);
     box->AddChild(table);
     return box;
 }
@@ -369,7 +376,10 @@ void TranslationConfigWnd::ProviderChanged() {
     TranslationProviderId provider = Provider();
     Visibility openAIVisibility =
         provider == TranslationProviderId::OpenAICompatible ? Visibility::Visible : Visibility::Collapse;
-    Visibility googleVisibility =
+    bool isGoogleProvider = provider == TranslationProviderId::GoogleCloud ||
+                            provider == TranslationProviderId::Google || provider == TranslationProviderId::GoogleAPI;
+    Visibility googleVisibility = isGoogleProvider ? Visibility::Visible : Visibility::Collapse;
+    Visibility googleKeyVisibility =
         provider == TranslationProviderId::GoogleCloud ? Visibility::Visible : Visibility::Collapse;
     Visibility microsoftVisibility =
         provider == TranslationProviderId::Microsoft ? Visibility::Visible : Visibility::Collapse;
@@ -378,7 +388,12 @@ void TranslationConfigWnd::ProviderChanged() {
     editOpenAIModel->SetVisibility(openAIVisibility);
     editOpenAIKey->SetVisibility(openAIVisibility);
     googleGroup->SetVisibility(googleVisibility);
-    editGoogleKey->SetVisibility(googleVisibility);
+    googleKeyLabel->SetVisibility(googleKeyVisibility);
+    editGoogleKey->SetVisibility(googleKeyVisibility);
+    if (googleHeading) {
+        TranslationProviderId headingProvider = isGoogleProvider ? provider : TranslationProviderId::GoogleCloud;
+        googleHeading->SetText(TranslationProviderName(headingProvider));
+    }
     microsoftGroup->SetVisibility(microsoftVisibility);
     editMicrosoftEndpoint->SetVisibility(microsoftVisibility);
     editMicrosoftRegion->SetVisibility(microsoftVisibility);
@@ -791,9 +806,9 @@ static TempStr TranslationConfigDumpTemp() {
         out.Append(
             fmt("provider=%s\nsource=%s\ntarget=%s\n", TranslationProviderName(settings.provider), source, target));
         out.Append(
-            fmt("openAIVisible=%d\ngoogleVisible=%d\nmicrosoftVisible=%d\n",
+            fmt("openAIVisible=%d\ngoogleVisible=%d\ngoogleKeyVisible=%d\nmicrosoftVisible=%d\n",
                 wnd->openAIGroup->GetVisibility() == Visibility::Visible && wnd->editOpenAIKey->IsVisible(),
-                wnd->googleGroup->GetVisibility() == Visibility::Visible && wnd->editGoogleKey->IsVisible(),
+                wnd->googleGroup->GetVisibility() == Visibility::Visible, wnd->editGoogleKey->IsVisible(),
                 wnd->microsoftGroup->GetVisibility() == Visibility::Visible && wnd->editMicrosoftKey->IsVisible()));
         out.Append(fmt("openAIBaseUrlBytes=%d\nopenAIModelBytes=%d\nopenAIKeyBytes=%d\ngoogleKeyBytes=%d\n",
                        len(settings.openAIBaseUrl), len(settings.openAIModel), len(settings.openAIKey),
@@ -882,9 +897,12 @@ TempStr TranslationConfigTestTemp(Str action, Str value, int* exitCode) {
         TranslationProviderId provider = gTranslationConfigWnd->Provider();
         Edit* edit = provider == TranslationProviderId::OpenAICompatible ? gTranslationConfigWnd->editOpenAIKey
                      : provider == TranslationProviderId::GoogleCloud    ? gTranslationConfigWnd->editGoogleKey
-                                                                         : gTranslationConfigWnd->editMicrosoftKey;
-        edit->SetText(value);
-        gTranslationConfigWnd->InputChanged();
+                     : provider == TranslationProviderId::Microsoft      ? gTranslationConfigWnd->editMicrosoftKey
+                                                                         : nullptr;
+        if (edit) {
+            edit->SetText(value);
+            gTranslationConfigWnd->InputChanged();
+        }
     } else if (str::Eq(action, StrL("test"))) {
         gTranslationConfigWnd->StartTest(ConfigTestStart::NoWorker);
     } else if (str::Eq(action, StrL("result"))) {

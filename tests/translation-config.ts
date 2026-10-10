@@ -14,7 +14,7 @@ const MICROSOFT_ENDPOINT = "https://example.test";
 const MICROSOFT_REGION = "westus";
 const MICROSOFT_KEY = "unsaved-ms-key";
 const KEYS = [SECRET, SAVED_GOOGLE_KEY, UNSAVED_GOOGLE_KEY, MICROSOFT_KEY];
-const PROVIDERS = ["OpenAI-compatible", "Google Cloud Translation", "Microsoft Translator"];
+const PROVIDERS = ["OpenAI-compatible", "Google Cloud Translation", "Google", "GoogleAPI", "Microsoft Translator"];
 const TEST_DPI = 144;
 const SIDE_BY_SIDE_DLLS = ["libsumatrapdf.dll", "clang_rt.asan_dynamic-x86_64.dll"].map((name) =>
   join(dirname(EXE), name),
@@ -113,6 +113,8 @@ export async function testit(): Promise<void> {
     EXE,
     async (client, proc) => {
       const frame = await waitForFrame(proc.pid!);
+      // Drain queued startup focus before the synchronous menu command.
+      await config(client, "dump");
       sendCommandSync(frame, cmdId("CmdConfigureTranslation"));
       let raw = await config(client, "dump");
       expect(raw, "open=1");
@@ -120,7 +122,7 @@ export async function testit(): Promise<void> {
       expect(raw, "openAIVisible=0");
       expect(raw, "googleVisible=1");
       expect(raw, "microsoftVisible=0");
-      expect(raw, "providerCount=3");
+      expect(raw, "providerCount=5");
       expect(raw, "sourceCount=33");
       expect(raw, "targetCount=32");
       expect(raw, "focused=1");
