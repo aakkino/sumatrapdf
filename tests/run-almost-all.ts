@@ -252,6 +252,7 @@ export const tests: NamedTest[] = [
   // first: it drives the home page, whose thumbnail selection follows the
   // mouse, so it is the one test that cares what the machine was doing before
   ["issue-5978", issue5978],
+  ["translation-config", translationConfig],
   ["toolbar-hover-dropdown", toolbarHoverDropdown],
   ["issue-6103", issue6103],
   ["issue-4276", issue4276],
@@ -458,7 +459,6 @@ export const tests: NamedTest[] = [
   ["selection-toolbar-move", selectionToolbarMove],
   ["selection-translate-popup", selectionTranslatePopup],
   ["translation-api", translationApi],
-  ["translation-config", translationConfig],
   ["selection-font-bbox", selectionFontBbox],
   ["issue-4839", issue4839],
   ["issue-6023", issue6023],
