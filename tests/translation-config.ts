@@ -113,6 +113,8 @@ export async function testit(): Promise<void> {
     EXE,
     async (client, proc) => {
       const frame = await waitForFrame(proc.pid!);
+      // Drain queued startup focus before the synchronous menu command.
+      await config(client, "dump");
       sendCommandSync(frame, cmdId("CmdConfigureTranslation"));
       let raw = await config(client, "dump");
       expect(raw, "open=1");
