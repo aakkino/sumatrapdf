@@ -17,6 +17,8 @@ type RequestRecord = {
 const SECRET = "translation-test-secret";
 const TEXT = "document text must stay private";
 const TRANSLATION = "texte traduit";
+const HTTP_OK = 200;
+const HTTP_CREATED = 201;
 const TIMEOUT_MS = 1_000;
 const TIMEOUT_DELAY_MS = TIMEOUT_MS * 2;
 
@@ -105,12 +107,15 @@ export async function testit(): Promise<void> {
         await Bun.sleep(TIMEOUT_DELAY_MS);
       }
       if (url.pathname.includes("google-web") || url.pathname.includes("googleapi-web")) {
-        return Response.json([
+        return Response.json(
           [
-            ["texte ", "document"],
-            ["traduit", "text"],
+            [
+              ["texte ", "document"],
+              ["traduit", "text"],
+            ],
           ],
-        ]);
+          { status: url.pathname.includes("-created") ? HTTP_CREATED : HTTP_OK },
+        );
       }
       if (url.pathname.includes("google")) {
         return Response.json({ data: { translations: [{ translatedText: TRANSLATION }] } });
@@ -221,6 +226,13 @@ export async function testit(): Promise<void> {
         webRequest.search,
         /[?&]q=document(?:%20|\+)text(?:%20|\+)must(?:%20|\+)stay(?:%20|\+)private(?:&|$)/,
         `${provider} query text`,
+      );
+
+      const createdSummary = await runTranslation(webGoogle, `${baseUrl}${path}-created`);
+      expectMatch(
+        createdSummary,
+        new RegExp(`^ok=0 http=${HTTP_CREATED} error=http-status$`),
+        `${provider} HTTP ${HTTP_CREATED} rejection`,
       );
     }
 

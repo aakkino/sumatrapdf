@@ -470,7 +470,7 @@ void TranslateText(const TranslationSettings& settings, const TranslationRequest
         HttpGetOptions getOptions;
         getOptions.timeoutMs = options.timeoutMs;
         getOptions.maxResponseBytes = options.maxResponseBytes;
-        ok = HttpGetUrl(url, &response, getOptions);
+        ok = HttpGetUrl(url, &response, getOptions) && response.httpStatusCode == HTTP_STATUS_OK;
     } else {
         ok = HttpPostUrl(url, StrL("application/json; charset=utf-8"), headers, body, &response, httpOptions);
     }
